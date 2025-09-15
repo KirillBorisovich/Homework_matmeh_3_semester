@@ -1,3 +1,4 @@
-﻿// See https://aka.ms/new-console-template for more information
+﻿using ParallelMatrixMultiplication;
 
-Console.WriteLine("Hello, World!");
+Matrix.ReadFromFile("../../../input.txt");
+Console.WriteLine("qwe");
