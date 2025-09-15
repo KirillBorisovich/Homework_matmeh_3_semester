@@ -1,7 +1,16 @@
 namespace ParallelMatrixMultiplication;
 
-public class Matrix
+/// <summary>
+/// A set of methods for working with matrices.
+/// </summary>
+public static class Matrix
 {
+    /// <summary>
+    /// Reading from file.
+    /// </summary>
+    /// <param name="path">Path to the file.</param>
+    /// <returns>Two-dimensional array.</returns>
+    /// <exception cref="EmptyFileException">Empty file exception.</exception>
     public static int[,] ReadFromFile(string path)
     {
         using var file = new StreamReader(path);
@@ -27,7 +36,7 @@ public class Matrix
 
         if (lines.Count == 0)
         {
-            throw new InvalidDataException();
+            throw new EmptyFileException();
         }
 
         var matrix = new int[lines.Count,  numberOfNumbersInARow];
