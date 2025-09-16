@@ -65,7 +65,7 @@ public static class Matrix
     /// <returns>The result of multiplication.</returns>
     /// <exception cref="IncompatibleMatrixSizesException">Exception about
     /// incompatibility of matrix sizes for multiplication.</exception>
-    public static int[,] MatrixMultiplication(int[,] matrix1, int[,] matrix2)
+    public static int[,] Multiplication(int[,] matrix1, int[,] matrix2)
     {
         if (matrix1.GetLength(1) != matrix2.GetLength(0))
         {
@@ -75,7 +75,10 @@ public static class Matrix
         var result = new int[matrix1.GetLength(0), matrix2.GetLength(1)];
         var matrix2T = Transpose(matrix2);
 
-        MultiplicationKernel(matrix1, matrix2T, result,
+        MultiplicationKernel(
+            matrix1,
+            matrix2T,
+            result,
             0,
             result.GetLength(1));
 
@@ -90,7 +93,7 @@ public static class Matrix
     /// <returns>The result of multiplication.</returns>
     /// <exception cref="IncompatibleMatrixSizesException">Exception about
     /// incompatibility of matrix sizes for multiplication.</exception>
-    public static int[,] ParallelMatrixMultiplication(int[,] matrix1, int[,] matrix2)
+    public static int[,] ParallelMultiplication(int[,] matrix1, int[,] matrix2)
     {
         if (matrix1.GetLength(1) != matrix2.GetLength(0))
         {
@@ -127,6 +130,36 @@ public static class Matrix
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Save matrix to file.
+    /// </summary>
+    /// <param name="path">Path to file.</param>
+    /// <param name="matrix">The matrix that needs to be saved.</param>
+    public static void SaveToFile(string path, int[,] matrix)
+    {
+        ArgumentNullException.ThrowIfNull(matrix);
+
+        if (string.IsNullOrEmpty(path))
+        {
+            throw new ArgumentException("File path cannot be null or empty");
+        }
+
+        using var writer = new StreamWriter(path);
+        for (var i = 0; i < matrix.GetLength(0); i++)
+        {
+            for (var j = 0; j < matrix.GetLength(1); j++)
+            {
+                writer.Write(matrix[i, j]);
+                if (j < matrix.GetLength(1) - 1)
+                {
+                    writer.Write(" ");
+                }
+            }
+
+            writer.WriteLine();
+        }
     }
 
     private static void MultiplicationKernel(int[,] matrix1, int[,] matrix2T, int[,] result, int startRow, int endRow)
