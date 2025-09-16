@@ -11,7 +11,8 @@ int[,] matrixA =
 int[,] matrixB =
 {
     { 1, 2, 3 },
+    { 4, 5, 6 },
+    { 7, 8, 9 },
 };
 
-var result = Matrix.MatrixMultiplication(matrixB, matrixA);
-Console.WriteLine("qwe");
+var result = Matrix.ParallelMatrixMultiplication(matrixA, matrixB);
