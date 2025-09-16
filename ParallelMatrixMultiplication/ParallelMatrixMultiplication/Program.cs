@@ -1,4 +1,8 @@
-﻿using ParallelMatrixMultiplication;
+﻿// <copyright file="Program.cs" company="Bengya Kirill">
+// Copyright (c) Bengya Kirill under MIT License.
+// </copyright>
+
+using ParallelMatrixMultiplication;
 
 Matrix.ReadFromFile("../../../input.txt");
 int[,] matrixA =
