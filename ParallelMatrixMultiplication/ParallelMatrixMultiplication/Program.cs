@@ -5,64 +5,62 @@
 using ParallelMatrixMultiplication;
 
 Console.WriteLine("Parallel matrix multiplication/n");
-var path1 = GetValidInput("Enter the path to the first matrix");
-var path2 = GetValidInput("Enter the path to the second matrix");
-var pathForResult = GetValidInput("Enter the path to save the result");
+Console.WriteLine(
+    "Enter a number for further action:\n" +
+    "1. Multiply matrices from file\n" +
+    "2. Generate test matrices and take measurements\n" +
+    "0. Exit");
 
 try
 {
-    var matrix1 = Matrix.ReadFromFile(path1);
-    var matrix2 = Matrix.ReadFromFile(path2);
-    var result = Matrix.ParallelMultiplication(matrix1, matrix2);
-    Matrix.SaveToFile(pathForResult, result);
+    switch (Console.ReadLine())
+    {
+        case "1":
+            UserInterface.MultiplyMatricesFromAFile();
+            return 0;
+        case "2":
+            UserInterface.CarryingOutMeasurementsOnTestMatrices();
+            return 0;
+        case "0":
+            return 0;
+        default:
+            Console.WriteLine("Unknown number of operations");
+            return 0;
+    }
 }
 catch (FileNotFoundException ex)
 {
     Console.WriteLine($"File '{ex.FileName}' not found");
+    return 0;
 }
 catch (DirectoryNotFoundException ex)
 {
     Console.WriteLine($"Directory not found: {ex.Message}");
+    return 0;
 }
 catch (UnauthorizedAccessException)
 {
     Console.WriteLine("No permission to read file");
+    return 0;
 }
 catch (InvalidDataException)
 {
     Console.WriteLine("Incorrect data format");
+    return 0;
 }
 catch (EmptyFileException)
 {
     Console.WriteLine("The file is empty");
+    return 0;
 }
 catch (IncompatibleMatrixSizesException)
 {
     Console.WriteLine("Matrix multiplication cannot be performed:" +
                       "dimensionality mismatch.");
+    return 0;
 }
 catch (ArgumentException)
 {
     Console.WriteLine("File path cannot be null or empty");
-}
-
-
-return;
-
-string GetValidInput(string prompt)
-{
-    string? input;
-    do
-    {
-        Console.Write(prompt);
-        input = Console.ReadLine();
-
-        if (string.IsNullOrWhiteSpace(input))
-        {
-            Console.WriteLine("Path cannot be empty. Please try again.");
-        }
-    }
-    while (string.IsNullOrWhiteSpace(input));
-
-    return input.Trim();
+    return 0;
 }

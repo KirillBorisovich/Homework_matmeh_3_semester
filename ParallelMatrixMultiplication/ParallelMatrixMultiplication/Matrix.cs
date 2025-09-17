@@ -9,6 +9,8 @@ namespace ParallelMatrixMultiplication;
 /// </summary>
 public static class Matrix
 {
+    private static readonly Random Rand = new();
+
     /// <summary>
     /// Reading from file.
     /// </summary>
@@ -160,6 +162,52 @@ public static class Matrix
 
             writer.WriteLine();
         }
+    }
+
+    /// <summary>
+    /// Generate a random matrix with given dimensions.
+    /// </summary>
+    /// <param name="rows">Number of rows.</param>
+    /// <param name="columns">Number columns.</param>
+    /// <returns>A random matrix in the form of a two-dimensional array.</returns>
+    /// <exception cref="ArgumentException">Row and Column count must be greater than zero.</exception>
+    public static int[][,] Generate(int rows, int columns)
+    {
+        if (rows <= 0 || columns <= 0)
+        {
+            throw new ArgumentException("Row and Column count must " +
+                                        "be greater than zero");
+        }
+
+        var matrices = new int[6][,];
+        var threads = new Thread[6];
+        for (var t = 0; t < threads.Length; t++)
+        {
+            var t1 = t;
+            threads[t] = new Thread(() =>
+            {
+                matrices[t1] = new int[rows, columns];
+                for (var i = 0; i < rows; i++)
+                {
+                    for (var j = 0; j < columns; j++)
+                    {
+                        matrices[t1][i, j] = Rand.Next(int.MinValue, int.MaxValue);
+                    }
+                }
+            });
+        }
+
+        foreach (var thread in threads)
+        {
+            thread.Start();
+        }
+
+        foreach (var thread in threads)
+        {
+            thread.Join();
+        }
+
+        return matrices;
     }
 
     private static void MultiplicationKernel(int[,] matrix1, int[,] matrix2T, int[,] result, int startRow, int endRow)
