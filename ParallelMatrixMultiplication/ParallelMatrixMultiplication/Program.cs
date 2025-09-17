@@ -19,7 +19,7 @@ try
             UserInterface.MultiplyMatricesFromAFile();
             return 0;
         case "2":
-            UserInterface.CarryingOutMeasurementsOnTestMatrices();
+            UserInterface.MakeOutMeasurementsOnTestMatrices();
             return 0;
         case "0":
             return 0;

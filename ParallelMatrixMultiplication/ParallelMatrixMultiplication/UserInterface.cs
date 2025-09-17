@@ -6,8 +6,14 @@ namespace ParallelMatrixMultiplication;
 
 using System.Diagnostics;
 
+/// <summary>
+/// User interface.
+/// </summary>
 public static class UserInterface
 {
+    /// <summary>
+    /// Multiplying matrices from files.
+    /// </summary>
     public static void MultiplyMatricesFromAFile()
     {
         var path1 = GetValidInput("Enter the path to the first matrix");
@@ -20,7 +26,10 @@ public static class UserInterface
         Console.WriteLine("\nSuccessfully!");
     }
 
-    public static void CarryingOutMeasurementsOnTestMatrices()
+    /// <summary>
+    /// Make measurements using test matrices.
+    /// </summary>
+    public static void MakeOutMeasurementsOnTestMatrices()
     {
         Console.WriteLine("\nStart of measurements");
         var sizes = new int[] { 100, 500, 1000 };
