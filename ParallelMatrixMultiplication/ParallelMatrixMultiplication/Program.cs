@@ -4,13 +4,13 @@
 
 using ParallelMatrixMultiplication;
 
-Console.WriteLine("Parallel matrix multiplication/n");
+Console.WriteLine("Parallel matrix multiplication\n");
 Console.WriteLine(
     "Enter a number for further action:\n" +
     "1. Multiply matrices from file\n" +
     "2. Generate test matrices and take measurements\n" +
-    "0. Exit");
-
+    "0. Exit\n");
+Console.WriteLine("Enter number:");
 try
 {
     switch (Console.ReadLine())

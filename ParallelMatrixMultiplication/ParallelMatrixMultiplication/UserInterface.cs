@@ -4,6 +4,8 @@
 
 namespace ParallelMatrixMultiplication;
 
+using System.Diagnostics;
+
 public static class UserInterface
 {
     public static void MultiplyMatricesFromAFile()
@@ -15,11 +17,64 @@ public static class UserInterface
         var matrix2 = Matrix.ReadFromFile(path2);
         var result = Matrix.ParallelMultiplication(matrix1, matrix2);
         Matrix.SaveToFile(pathForResult, result);
+        Console.WriteLine("\nSuccessfully!");
     }
 
     public static void CarryingOutMeasurementsOnTestMatrices()
     {
-        
+        Console.WriteLine("\nStart of measurements");
+        var sizes = new int[] { 100, 500, 1000 };
+        foreach (var size in sizes)
+        {
+            var matrix1 = Matrix.Generate(size, size);
+            var matrix2 = Matrix.Generate(size, size);
+
+            var time1 = MeasureTime(
+                () =>
+            {
+                var result = Matrix.Multiplication(matrix1, matrix2);
+            });
+            var time2 = MeasureTime(
+                () =>
+            {
+                var result = Matrix.ParallelMultiplication(matrix1, matrix2);
+            });
+            Console.WriteLine($"---------------\n" +
+                              $"Size of the first matrix: {size}x{size}\n" +
+                              $"Size of the second matrix: {size}x{size}\n" +
+                              $"Time of successive multiplication: {time1.AverageTime,8:F2} ± {time1.StandardDeviation:F2} ms\n" +
+                              $"Parallel multiplication time: {time2.AverageTime,8:F2} ± {time2.StandardDeviation:F2} ms\n" +
+                              $"Acceleration: {time1.AverageTime / time2.AverageTime,8:F2}");
+        }
+
+        return;
+
+        (double AverageTime, double StandardDeviation) MeasureTime(Action action)
+        {
+            action();
+
+            const int iterations = 10;
+            var totalTime = new List<double>();
+
+            for (var i = 0; i < iterations; i++)
+            {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+
+                var watch = Stopwatch.StartNew();
+                action();
+                watch.Stop();
+
+                totalTime.Add(watch.ElapsedMilliseconds);
+            }
+
+            var averageTime = totalTime.Sum() / iterations;
+            var sumOfSquaredDeviations = totalTime.Sum(item => Math.Pow(item - averageTime, 2));
+            var standardDeviation = Math.Sqrt(sumOfSquaredDeviations / totalTime.Count);
+
+            return (averageTime, standardDeviation);
+        }
     }
 
     private static string GetValidInput(string prompt)
@@ -27,7 +82,7 @@ public static class UserInterface
         string? input;
         do
         {
-            Console.Write(prompt);
+            Console.WriteLine("\n" + prompt);
             input = Console.ReadLine();
 
             if (string.IsNullOrWhiteSpace(input))
