@@ -82,7 +82,7 @@ public static class Matrix
             matrix2T,
             result,
             0,
-            result.GetLength(1));
+            result.GetLength(0));
 
         return result;
     }

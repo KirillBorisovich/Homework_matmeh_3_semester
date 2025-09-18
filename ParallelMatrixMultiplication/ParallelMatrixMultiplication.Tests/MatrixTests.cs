@@ -2,9 +2,18 @@
 
 public class MatrixTests
 {
-    private readonly int[,] matrix1 = Matrix.ReadFromFile("../../../TestInput1.txt");
-    private readonly int[,] matrix2 = Matrix.ReadFromFile("../../../TestInput2.txt");
-    private int[,] resultOfParallelMultiplication = Matrix.ParallelMultiplication(matrix1, matrix2);
+    private readonly int[,] matrix1;
+    private readonly int[,] matrix2;
+    private readonly int[,] resultOfParallelMultiplication;
+    private readonly int[,] resultOfSequentialMultiplication;
+
+    public MatrixTests()
+    {
+        this.matrix1 = Matrix.ReadFromFile("../../../TestInput1.txt");
+        this.matrix2 = Matrix.ReadFromFile("../../../TestInput2.txt");
+        this.resultOfParallelMultiplication = Matrix.ParallelMultiplication(this.matrix1, this.matrix2);
+        this.resultOfSequentialMultiplication = Matrix.Multiplication(this.matrix1, this.matrix2);
+    }
 
     [SetUp]
     public void Setup()
@@ -14,28 +23,31 @@ public class MatrixTests
     [Test]
     public void TheMatricesAreEqualTest()
     {
-        var matrix1 = new int[,]
+        var localMatrix1 = new int[,]
         {
             { 1, 2, 3 },
             { 4, 5, 6 },
         };
-        var matrix2 = new int[,]
+        var localMatrix2 = new int[,]
         {
             { 1, 2, 3 },
             { 4, 5, 6 },
             { 7, 8, 9 },
         };
-        var matrix3 = new int[,]
+        var localMatrix3 = new int[,]
         {
             { 1, 2, 3 },
             { 4, 5, 6 },
             { 7, 8, 9 },
         };
 
-        Assert.That(Matrix.Equals(matrix1, matrix1), Is.True);
-        Assert.That(Matrix.Equals(matrix1, matrix2), Is.False);
-        Assert.That(Matrix.Equals(matrix2, matrix3), Is.True);
-        Assert.That(Matrix.Equals(matrix3, matrix1), Is.False);
+        Assert.Multiple(() =>
+        {
+            Assert.That(Matrix.Equals(localMatrix1, localMatrix1), Is.True);
+            Assert.That(Matrix.Equals(localMatrix1, localMatrix2), Is.False);
+            Assert.That(Matrix.Equals(localMatrix2, localMatrix3), Is.True);
+            Assert.That(Matrix.Equals(localMatrix3, localMatrix1), Is.False);
+        });
     }
 
     [Test]
@@ -55,12 +67,11 @@ public class MatrixTests
             { 7, 8 },
             { 9, 10 },
         };
-        var testMatrix1 = Matrix.ReadFromFile("../../../TestInput1.txt");
-        var testMatrix2 = Matrix.ReadFromFile("../../../TestInput2.txt");
+
         Assert.Multiple(() =>
         {
-            Assert.That(Matrix.Equals(testMatrix1, sample1), Is.True);
-            Assert.That(Matrix.Equals(testMatrix2, sample2), Is.True);
+            Assert.That(Matrix.Equals(this.matrix1, sample1), Is.True);
+            Assert.That(Matrix.Equals(this.matrix2, sample2), Is.True);
         });
     }
 
@@ -72,9 +83,85 @@ public class MatrixTests
     }
 
     [Test]
-    public void ReadFromFileShouldThrowInvalidDataExceptionIfIncorrectMatrixstructure()
+    public void ReadFromFileShouldThrowInvalidDataExceptionIfIncorrectMatrixStructure()
     {
         Assert.Throws<InvalidDataException>(
             () => Matrix.ReadFromFile("../../../TestInputFailed2.txt"));
+    }
+
+    [Test]
+    public void MultiplicationTest()
+    {
+        var sample = new int[,]
+        {
+            { 95, 110 },
+            { 220, 260 },
+            { 345, 410 },
+        };
+        Assert.That(Matrix.Equals(this.resultOfSequentialMultiplication, sample), Is.True);
+    }
+
+    [Test]
+    public void MultiplicationShouldThrowIncompatibleMatrixSizesExceptionIfIncompatibleMatrixSizes()
+    {
+        var sample = new int[,]
+        {
+            { 95, 110 },
+            { 220, 260 },
+            { 345, 410 },
+        };
+        Assert.Throws<IncompatibleMatrixSizesException>(
+            () => Matrix.Multiplication(this.matrix1, sample));
+    }
+
+    [Test]
+    public void ParallelMultiplicationTest()
+    {
+        var sample = new int[,]
+        {
+            { 95, 110 },
+            { 220, 260 },
+            { 345, 410 },
+        };
+        Assert.That(Matrix.Equals(this.resultOfParallelMultiplication, sample), Is.True);
+    }
+
+    [Test]
+    public void ParallelMultiplicationShouldThrowIncompatibleMatrixSizesExceptionIfIncompatibleMatrixSizes()
+    {
+        var sample = new int[,]
+        {
+            { 95, 110 },
+            { 220, 260 },
+            { 345, 410 },
+        };
+        Assert.Throws<IncompatibleMatrixSizesException>(
+            () => Matrix.ParallelMultiplication(this.matrix1, sample));
+    }
+
+    [Test]
+    public void SaveToFileTest()
+    {
+        Matrix.SaveToFile("../../../TestResultInput.txt", this.resultOfSequentialMultiplication);
+        var input = Matrix.ReadFromFile("../../../TestResultInput.txt");
+        Assert.That(Matrix.Equals(input, this.resultOfSequentialMultiplication), Is.True);
+    }
+
+    [Test]
+    public void SaveToFileShouldThrowArgumentExceptionIfAnEmptyPath()
+    {
+        Assert.Throws<ArgumentException>(
+            () => Matrix.SaveToFile(string.Empty, this.resultOfSequentialMultiplication));
+    }
+
+    [Test]
+    public void GenerateTest()
+    {
+        var matrix = Matrix.Generate(10, 5);
+        Assert.Multiple(() =>
+        {
+            Assert.That(matrix.GetLength(0), Is.EqualTo(10));
+            Assert.That(matrix.GetLength(1), Is.EqualTo(5));
+        });
     }
 }
