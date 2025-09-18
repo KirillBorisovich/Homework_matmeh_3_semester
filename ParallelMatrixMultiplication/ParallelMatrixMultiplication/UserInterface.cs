@@ -32,22 +32,16 @@ public static class UserInterface
     public static void MakeOutMeasurementsOnTestMatrices()
     {
         Console.WriteLine("\nStart of measurements");
-        var sizes = new int[] { 100, 500, 1000 };
+        var sizes = new[] { 100, 500, 1000 };
         foreach (var size in sizes)
         {
             var matrix1 = Matrix.Generate(size, size);
             var matrix2 = Matrix.Generate(size, size);
 
             var time1 = MeasureTime(
-                () =>
-            {
-                var result = Matrix.Multiplication(matrix1, matrix2);
-            });
+                () => { Matrix.Multiplication(matrix1, matrix2); });
             var time2 = MeasureTime(
-                () =>
-            {
-                var result = Matrix.ParallelMultiplication(matrix1, matrix2);
-            });
+                () => { Matrix.ParallelMultiplication(matrix1, matrix2); });
             Console.WriteLine($"---------------\n" +
                               $"Size of the first matrix: {size}x{size}\n" +
                               $"Size of the second matrix: {size}x{size}\n" +

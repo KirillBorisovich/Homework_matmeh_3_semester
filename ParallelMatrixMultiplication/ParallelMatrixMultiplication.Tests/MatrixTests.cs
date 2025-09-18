@@ -1,4 +1,8 @@
-﻿namespace ParallelMatrixMultiplication.Tests;
+﻿// <copyright file="MatrixTests.cs" company="Bengya Kirill">
+// Copyright (c) Bengya Kirill under MIT License.
+// </copyright>
+
+namespace ParallelMatrixMultiplication.Tests;
 
 public class MatrixTests
 {
@@ -15,26 +19,21 @@ public class MatrixTests
         this.resultOfSequentialMultiplication = Matrix.Multiplication(this.matrix1, this.matrix2);
     }
 
-    [SetUp]
-    public void Setup()
-    {
-    }
-
     [Test]
     public void TheMatricesAreEqualTest()
     {
-        var localMatrix1 = new int[,]
+        var localMatrix1 = new[,]
         {
             { 1, 2, 3 },
             { 4, 5, 6 },
         };
-        var localMatrix2 = new int[,]
+        var localMatrix2 = new[,]
         {
             { 1, 2, 3 },
             { 4, 5, 6 },
             { 7, 8, 9 },
         };
-        var localMatrix3 = new int[,]
+        var localMatrix3 = new[,]
         {
             { 1, 2, 3 },
             { 4, 5, 6 },
@@ -53,13 +52,13 @@ public class MatrixTests
     [Test]
     public void ReadFromFileTest()
     {
-        var sample1 = new int[,]
+        var sample1 = new[,]
         {
             { 1, 2, 3, 4, 5 },
             { 6, 7, 8, 9, 10 },
             { 11, 12, 13, 14, 15 },
         };
-        var sample2 = new int[,]
+        var sample2 = new[,]
         {
             { 1, 2 },
             { 3, 4 },
@@ -92,7 +91,7 @@ public class MatrixTests
     [Test]
     public void MultiplicationTest()
     {
-        var sample = new int[,]
+        var sample = new[,]
         {
             { 95, 110 },
             { 220, 260 },
@@ -104,7 +103,7 @@ public class MatrixTests
     [Test]
     public void MultiplicationShouldThrowIncompatibleMatrixSizesExceptionIfIncompatibleMatrixSizes()
     {
-        var sample = new int[,]
+        var sample = new[,]
         {
             { 95, 110 },
             { 220, 260 },
@@ -117,7 +116,7 @@ public class MatrixTests
     [Test]
     public void ParallelMultiplicationTest()
     {
-        var sample = new int[,]
+        var sample = new[,]
         {
             { 95, 110 },
             { 220, 260 },
@@ -129,7 +128,7 @@ public class MatrixTests
     [Test]
     public void ParallelMultiplicationShouldThrowIncompatibleMatrixSizesExceptionIfIncompatibleMatrixSizes()
     {
-        var sample = new int[,]
+        var sample = new[,]
         {
             { 95, 110 },
             { 220, 260 },
