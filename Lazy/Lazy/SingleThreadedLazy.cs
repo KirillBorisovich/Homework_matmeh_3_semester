@@ -1,4 +1,4 @@
-﻿// <copyright file="MyLazy.cs" company="Bengya Kirill">
+﻿// <copyright file="SingleThreadedLazy.cs" company="Bengya Kirill">
 // Copyright (c) Bengya Kirill under MIT License.
 // </copyright>
 
@@ -9,7 +9,7 @@ namespace Lazy;
 /// </summary>
 /// <param name="supplier">A function for calculating.</param>
 /// <typeparam name="T">Parameter type of the function result.</typeparam>
-public class MyLazy<T>(Func<T> supplier) : ILazy<T>
+public class SingleThreadedLazy<T>(Func<T>? supplier) : ILazy<T>
 {
     private Func<T>? supplier = supplier ?? throw new ArgumentNullException(nameof(supplier));
     private T? result;
@@ -26,8 +26,13 @@ public class MyLazy<T>(Func<T> supplier) : ILazy<T>
             return this.result;
         }
 
-        this.result = this.supplier!();
-        this.isCalculated = true;
+        var func = this.supplier;
+        if (func != null)
+        {
+            this.result = func();
+            this.isCalculated = true;
+        }
+
         this.supplier = null;
 
         return this.result;

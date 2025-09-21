@@ -9,7 +9,7 @@ namespace Lazy;
 /// </summary>
 /// <param name="supplier">A function for calculating.</param>
 /// <typeparam name="T">Parameter type of the function result.</typeparam>
-public class MyMultiThreadLazy<T>(Func<T> supplier) : ILazy<T>
+public class MyMultiThreadLazy<T>(Func<T>? supplier) : ILazy<T>
 {
     private readonly Lock lockObject = new();
     private Func<T>? supplier = supplier ?? throw new ArgumentNullException(nameof(supplier));
@@ -29,8 +29,13 @@ public class MyMultiThreadLazy<T>(Func<T> supplier) : ILazy<T>
 
         lock (this.lockObject)
         {
-            this.result = this.supplier!();
-            this.isCalculated = true;
+            var func = this.supplier;
+            if (func != null)
+            {
+                this.result = func();
+                this.isCalculated = true;
+            }
+
             this.supplier = null;
             return this.result;
         }

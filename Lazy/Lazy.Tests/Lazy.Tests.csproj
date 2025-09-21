@@ -28,4 +28,8 @@
       <ProjectReference Include="..\Lazy\Lazy.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <AdditionalFiles Include="stylecop.json" />
+    </ItemGroup>
+
 </Project>
