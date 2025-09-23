@@ -6,11 +6,6 @@ namespace Lazy.Tests;
 
 public class SingleThreadedLazyTests
 {
-    [SetUp]
-    public void Setup()
-    {
-    }
-
     [Test]
     public void GetReturnsCorrectValue()
     {
@@ -85,11 +80,11 @@ public class SingleThreadedLazyTests
     {
         Assert.Throws<ArgumentNullException>(() =>
         {
-            var singleThreadedUsage = new SingleThreadedLazy<int>(null);
+            var unused = new SingleThreadedLazy<int>(null);
         });
         Assert.Throws<ArgumentNullException>(() =>
         {
-            var singleThreadedUsage = new MyMultiThreadLazy<int>(null);
+            var unused = new MyMultiThreadLazy<int>(null);
         });
     }
 }
