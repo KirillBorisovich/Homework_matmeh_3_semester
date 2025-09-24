@@ -32,7 +32,7 @@ public class MultiThreadedLazyTests
 
         foreach (var thread in threads)
         {
-            thread.Join();
+            thread.Join(200);
         }
 
         Assert.Multiple(() =>
