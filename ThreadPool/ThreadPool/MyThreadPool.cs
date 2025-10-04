@@ -7,8 +7,9 @@ namespace ThreadPool;
 public class MyThreadPool
 {
     private readonly TaskQueue<Action> taskQueue = new();
-    private readonly CancellationTokenSource cancellationTokenSource = new();
     private readonly Thread[] threads;
+    private readonly CancellationTokenSource cancellationTokenSource = new();
+    private bool isShutdown;
 
     public MyThreadPool()
     {
@@ -40,7 +41,15 @@ public class MyThreadPool
 
     public void Shutdown()
     {
+        this.isShutdown = true;
         this.cancellationTokenSource.Cancel();
+
+        while (this.taskQueue.Count > 0)
+        {
+            var task = this.taskQueue.Dequeue();
+            task();
+        }
+
         foreach (var thread in this.threads)
         {
             thread.Join();
@@ -49,6 +58,11 @@ public class MyThreadPool
 
     private void Run(Action action)
     {
+        if (this.isShutdown)
+        {
+            throw new OperationCanceledException("ThreadPool is stopped");
+        }
+
         this.taskQueue.Enqueue(action);
     }
 
@@ -93,17 +107,22 @@ public class MyThreadPool
     private class MyTask<TResult>(MyThreadPool threadPool, Func<TResult> func) : IMyTask<TResult>
     {
         private readonly MyThreadPool threadPool = threadPool;
-        private readonly TaskQueue<Action> taskQueue = new();
+        private readonly TaskQueue<Action> continuations = new();
         private readonly ManualResetEvent completionEvent = new ManualResetEvent(false);
-        private TResult? result = default;
+        private TResult? result;
+        private Exception? exception;
 
-        public bool IsCompleted { get; } = false;
+        public bool IsCompleted { get; private set; }
 
         public TResult Result
         {
             get
             {
                 this.completionEvent.WaitOne();
+                if (this.exception != null)
+                {
+                    throw new AggregateException(this.exception);
+                }
 
                 return this.result!;
             }
@@ -111,24 +130,74 @@ public class MyThreadPool
 
         public IMyTask<TNewResult> ContinueWith<TNewResult>(Func<TResult, TNewResult> function)
         {
+            if (this.exception != null)
+            {
+                throw new AggregateException(this.exception);
+            }
+
             var newTask = new MyTask<TNewResult>(this.threadPool, () => function(this.Result));
-            this.taskQueue.Enqueue(newTask.Execute);
+            this.continuations.Enqueue(() =>
+            {
+                if (this.exception != null)
+                {
+                    newTask.exception = this.exception;
+                    newTask.completionEvent.Set();
+                    newTask.IsCompleted = true;
+                    newTask.ExecuteAllContinuations();
+                    return;
+                }
+
+                newTask.Execute();
+            });
+
             return newTask;
         }
 
         public void Execute()
         {
-            this.result = func();
-            this.completionEvent.Set();
-
-            if (this.taskQueue.Count == 0)
+            if (this.threadPool.isShutdown)
             {
+                this.exception = new OperationCanceledException("ThreadPool is stopped");
+                this.ExecuteAllContinuations();
+
                 return;
             }
 
-            for (var i = 0; i < this.taskQueue.Count; i++)
+            try
             {
-                this.threadPool.Run(this.taskQueue.Dequeue());
+                this.result = func();
+            }
+            catch (Exception ex)
+            {
+                this.exception = ex;
+            }
+
+            this.completionEvent.Set();
+            this.IsCompleted = true;
+
+            if (this.exception == null)
+            {
+                this.SendAllContinuationsToTheThreadPool();
+            }
+            else
+            {
+                this.ExecuteAllContinuations();
+            }
+        }
+
+        private void SendAllContinuationsToTheThreadPool()
+        {
+            while (this.continuations.Count > 0)
+            {
+                this.threadPool.Run(this.continuations.Dequeue());
+            }
+        }
+
+        private void ExecuteAllContinuations()
+        {
+            while (this.continuations.Count > 0)
+            {
+                this.continuations.Dequeue()();
             }
         }
     }
