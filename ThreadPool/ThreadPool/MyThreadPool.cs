@@ -11,9 +11,11 @@ public class MyThreadPool
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isShutdown;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="MyThreadPool"/> class.
+    /// </summary>
     public MyThreadPool()
     {
-        this.ThreadsCount = Environment.ProcessorCount;
         this.threads = new Thread[this.ThreadsCount];
         for (var i = 0; i < this.threads.Length; i++)
         {
@@ -30,8 +32,17 @@ public class MyThreadPool
         }
     }
 
-    private int ThreadsCount { get; }
+    /// <summary>
+    /// Gets the number of running threads.
+    /// </summary>
+    public int ThreadsCount => this.threads.Length;
 
+    /// <summary>
+    /// Send a task to a thread pool.
+    /// </summary>
+    /// <param name="func">Task to complete.</param>
+    /// <typeparam name="TResult">Type of task result.</typeparam>
+    /// <returns>The IMyTask interface element.</returns>
     public IMyTask<TResult> Submit<TResult>(Func<TResult> func)
     {
         var task = new MyTask<TResult>(this, func);
@@ -39,6 +50,9 @@ public class MyThreadPool
         return task;
     }
 
+    /// <summary>
+    /// Shut down the threads.
+    /// </summary>
     public void Shutdown()
     {
         this.isShutdown = true;
