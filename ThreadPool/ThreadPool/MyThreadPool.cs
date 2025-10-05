@@ -2,21 +2,24 @@
 // Copyright (c) Bengya Kirill under MIT License.
 // </copyright>
 
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
 namespace ThreadPool;
 
 public class MyThreadPool : IDisposable
 {
-    private readonly TaskQueue<Action> taskQueue = new();
+    private readonly TaskQueue<Action> taskQueue;
     private readonly Thread[] threads;
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isShutdown;
-    private Lock lockObject = new Lock();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MyThreadPool"/> class.
     /// </summary>
     public MyThreadPool()
     {
+        this.taskQueue = new TaskQueue<Action>(this);
         this.threads = new Thread[Environment.ProcessorCount];
         for (var i = 0; i < this.threads.Length; i++)
         {
@@ -46,6 +49,11 @@ public class MyThreadPool : IDisposable
     /// <returns>The IMyTask interface element.</returns>
     public IMyTask<TResult> Submit<TResult>(Func<TResult> func)
     {
+        if (this.isShutdown)
+        {
+            throw new OperationCanceledException("ThreadPool is stopped");
+        }
+
         var task = new MyTask<TResult>(this, func);
         this.Run(() => task.Execute());
         return task;
@@ -65,6 +73,7 @@ public class MyThreadPool : IDisposable
             task();
         }
 
+        this.taskQueue.WakeAll();
         foreach (var thread in this.threads)
         {
             thread.Join();
@@ -95,14 +104,22 @@ public class MyThreadPool : IDisposable
     {
         while (!token.IsCancellationRequested)
         {
-            var task = this.taskQueue.Dequeue();
-            task();
+            try
+            {
+                var task = this.taskQueue.Dequeue();
+                task();
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
         }
     }
 
-    private class TaskQueue<T>
+    private class TaskQueue<T>(MyThreadPool pool)
     {
         private readonly Queue<T> buffer = new();
+        private readonly MyThreadPool myThreadPool = pool;
 
         public int Count => this.buffer.Count;
 
@@ -122,21 +139,41 @@ public class MyThreadPool : IDisposable
                 while (this.buffer.Count == 0)
                 {
                     Monitor.Wait(this.buffer);
+                    if (this.myThreadPool.isShutdown)
+                    {
+                        throw new OperationCanceledException();
+                    }
                 }
 
                 return this.buffer.Dequeue();
             }
         }
+
+        public void WakeAll()
+        {
+            lock (this.buffer)
+            {
+                Monitor.PulseAll(this.buffer);
+            }
+        }
     }
 
-    private class MyTask<TResult>(MyThreadPool threadPool, Func<TResult> func) :
+    private class MyTask<TResult> :
         IMyTask<TResult>
     {
-        private readonly MyThreadPool threadPool = threadPool;
-        private readonly TaskQueue<Action> continuations = new();
+        private readonly MyThreadPool threadPool;
+        private readonly TaskQueue<Action> continuations;
         private readonly ManualResetEvent completionEvent = new ManualResetEvent(false);
         private TResult? result;
         private Exception? exception;
+        private Func<TResult> func;
+
+        public MyTask(MyThreadPool threadPool, Func<TResult> func)
+        {
+            this.threadPool = threadPool;
+            this.continuations = new TaskQueue<Action>(threadPool);
+            this.func = func;
+        }
 
         public bool IsCompleted { get; private set; }
 
@@ -191,7 +228,7 @@ public class MyThreadPool : IDisposable
 
             try
             {
-                this.result = func();
+                this.result = this.func();
             }
             catch (Exception ex)
             {
