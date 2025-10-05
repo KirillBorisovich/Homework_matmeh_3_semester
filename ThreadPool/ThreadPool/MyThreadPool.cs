@@ -4,19 +4,20 @@
 
 namespace ThreadPool;
 
-public class MyThreadPool
+public class MyThreadPool : IDisposable
 {
     private readonly TaskQueue<Action> taskQueue = new();
     private readonly Thread[] threads;
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isShutdown;
+    private Lock lockObject = new Lock();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MyThreadPool"/> class.
     /// </summary>
     public MyThreadPool()
     {
-        this.threads = new Thread[this.ThreadsCount];
+        this.threads = new Thread[Environment.ProcessorCount];
         for (var i = 0; i < this.threads.Length; i++)
         {
             this.threads[i] = new Thread(
@@ -70,6 +71,16 @@ public class MyThreadPool
         }
     }
 
+    public void Dispose()
+    {
+        if (!this.isShutdown)
+        {
+            this.Shutdown();
+        }
+
+        this.cancellationTokenSource.Dispose();
+    }
+
     private void Run(Action action)
     {
         if (this.isShutdown)
@@ -118,7 +129,8 @@ public class MyThreadPool
         }
     }
 
-    private class MyTask<TResult>(MyThreadPool threadPool, Func<TResult> func) : IMyTask<TResult>
+    private class MyTask<TResult>(MyThreadPool threadPool, Func<TResult> func) :
+        IMyTask<TResult>
     {
         private readonly MyThreadPool threadPool = threadPool;
         private readonly TaskQueue<Action> continuations = new();
