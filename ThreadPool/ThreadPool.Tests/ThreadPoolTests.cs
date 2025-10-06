@@ -1,22 +1,34 @@
-﻿namespace ThreadPool.Tests;
+﻿// <copyright file="ThreadPoolTests.cs" company="Bengya Kirill">
+// Copyright (c) Bengya Kirill under MIT License.
+// </copyright>
+
+namespace ThreadPool.Tests;
 
 public class ThreadPoolTests
 {
+    private MyThreadPool threadPool;
+
     [SetUp]
     public void Setup()
     {
+        this.threadPool = new MyThreadPool();
+    }
+
+    [TearDown]
+    public void TearDown()
+    {
+        this.threadPool.Dispose();
     }
 
     [Test]
     public void SubmitTest()
     {
-        using var threadPool = new MyThreadPool();
         var taskList = new List<IMyTask<int>>();
         var resultList = new List<int>();
         for (var i = 0; i < 100; i++)
         {
             var localI = i;
-            taskList.Add(threadPool.Submit(() => localI * localI));
+            taskList.Add(this.threadPool.Submit(() => localI * localI));
             resultList.Add(localI * localI);
         }
 
@@ -32,7 +44,6 @@ public class ThreadPoolTests
     [Test]
     public void SubmitMultipleThreadsTest()
     {
-        using var threadPool = new MyThreadPool();
         var threads = new Thread[100];
         var tasks = new IMyTask<int>[100];
         var resultList = new List<int>();
@@ -41,7 +52,7 @@ public class ThreadPoolTests
             var localI = i;
             threads[i] = new Thread(() =>
             {
-                tasks[localI] = threadPool.Submit(() => localI * localI);
+                tasks[localI] = this.threadPool.Submit(() => localI * localI);
             });
             resultList.Add(localI * localI);
         }
@@ -60,20 +71,65 @@ public class ThreadPoolTests
         {
             for (var i = 0; i < tasks.Length; i++)
             {
+                Assert.That(tasks[i].IsCompleted, Is.True);
                 Assert.That(tasks[i].Result, Is.EqualTo(resultList[i]));
             }
         });
     }
 
     [Test]
+    public void SubmitExceptionTest()
+    {
+        this.threadPool.Shutdown();
+        Assert.Throws<OperationCanceledException>(() =>
+            this.threadPool.Submit(() => 2 * 2));
+    }
+
+    [Test]
+    public void Result_WhenTaskThrowsException_ThrowsAggregateException()
+    {
+        var task = this.threadPool.Submit<Exception>(() => throw new InvalidOperationException());
+        var ex = Assert.Throws<AggregateException>(() => _ = task.Result);
+
+        Assert.That(ex.InnerException, Is.InstanceOf<InvalidOperationException>());
+    }
+
+    [Test]
+    public void ContinueWithTest()
+    {
+        var task = this.threadPool.Submit(() => 2 * 2);
+        var continueTask1 = task.ContinueWith(x => x * 2);
+        var continueTask2 = continueTask1.ContinueWith(x => x * 2);
+        Assert.That(continueTask2.Result, Is.EqualTo(16));
+    }
+
+    [Test]
+    public void ContinueWithExceptionTest()
+    {
+        var task = this.threadPool.Submit(() =>
+        {
+            Thread.Sleep(1000);
+            throw new InvalidOperationException();
+            return 2;
+        });
+        var continueTask = task.ContinueWith(x => x * x);
+
+        Assert.Multiple(() =>
+        {
+            var ex = Assert.Throws<AggregateException>(() => _ = continueTask.Result);
+
+            Assert.That(ex?.InnerException, Is.InstanceOf<InvalidOperationException>());
+        });
+    }
+
+    [Test]
     public void ShutdownTest()
     {
-        using var threadPool = new MyThreadPool();
         var taskCounter = 0;
         const int maxTaskNumber = 1000;
         for (var i = 0; i < maxTaskNumber; i++)
         {
-            threadPool.Submit(() =>
+            this.threadPool.Submit(() =>
             {
                 Thread.Sleep(100);
                 Interlocked.Increment(ref taskCounter);
@@ -82,6 +138,24 @@ public class ThreadPoolTests
         }
 
         Thread.Sleep(100);
+        this.threadPool.Shutdown();
         Assert.That(taskCounter, Is.LessThan(maxTaskNumber));
+    }
+
+    [Test]
+    public void ContinueWithAtShutdownTest()
+    {
+        var task = this.threadPool.Submit(() =>
+        {
+            Thread.Sleep(100);
+            return 4;
+        });
+        Thread.Sleep(100);
+        this.threadPool.Shutdown();
+        var continueTask = task.ContinueWith(x => x * x);
+
+        var ex = Assert.Throws<AggregateException>(() => _ = continueTask.Result);
+
+        Assert.That(ex?.InnerException, Is.InstanceOf<OperationCanceledException>());
     }
 }

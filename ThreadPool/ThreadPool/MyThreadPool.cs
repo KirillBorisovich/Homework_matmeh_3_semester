@@ -2,9 +2,6 @@
 // Copyright (c) Bengya Kirill under MIT License.
 // </copyright>
 
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-
 namespace ThreadPool;
 
 public class MyThreadPool : IDisposable
@@ -64,6 +61,11 @@ public class MyThreadPool : IDisposable
     /// </summary>
     public void Shutdown()
     {
+        if (this.isShutdown)
+        {
+            return;
+        }
+
         this.isShutdown = true;
         this.cancellationTokenSource.Cancel();
 
@@ -158,22 +160,13 @@ public class MyThreadPool : IDisposable
         }
     }
 
-    private class MyTask<TResult> :
+    private class MyTask<TResult>(MyThreadPool threadPool, Func<TResult> func) :
         IMyTask<TResult>
     {
-        private readonly MyThreadPool threadPool;
-        private readonly TaskQueue<Action> continuations;
+        private readonly TaskQueue<Action> continuations = new(threadPool);
         private readonly ManualResetEvent completionEvent = new ManualResetEvent(false);
         private TResult? result;
         private Exception? exception;
-        private Func<TResult> func;
-
-        public MyTask(MyThreadPool threadPool, Func<TResult> func)
-        {
-            this.threadPool = threadPool;
-            this.continuations = new TaskQueue<Action>(threadPool);
-            this.func = func;
-        }
 
         public bool IsCompleted { get; private set; }
 
@@ -193,13 +186,23 @@ public class MyThreadPool : IDisposable
 
         public IMyTask<TNewResult> ContinueWith<TNewResult>(Func<TResult, TNewResult> function)
         {
-            if (this.exception != null)
+            var newTask = new MyTask<TNewResult>(threadPool, () => function(this.Result));
+            switch (this.IsCompleted)
             {
-                throw new AggregateException(this.exception);
+                case true when !threadPool.isShutdown:
+                    threadPool.Run(ExecuteForContinue);
+                    break;
+                case true when threadPool.isShutdown:
+                    ExecuteForContinue();
+                    break;
+                case false:
+                    this.continuations.Enqueue(ExecuteForContinue);
+                    break;
             }
 
-            var newTask = new MyTask<TNewResult>(this.threadPool, () => function(this.Result));
-            this.continuations.Enqueue(() =>
+            return newTask;
+
+            void ExecuteForContinue()
             {
                 if (this.exception != null)
                 {
@@ -211,24 +214,22 @@ public class MyThreadPool : IDisposable
                 }
 
                 newTask.Execute();
-            });
-
-            return newTask;
+            }
         }
 
         public void Execute()
         {
-            if (this.threadPool.isShutdown)
+            if (threadPool.isShutdown)
             {
                 this.exception = new OperationCanceledException("ThreadPool is stopped");
                 this.ExecuteAllContinuations();
-
+                this.completionEvent.Set();
                 return;
             }
 
             try
             {
-                this.result = this.func();
+                this.result = func();
             }
             catch (Exception ex)
             {
@@ -238,7 +239,7 @@ public class MyThreadPool : IDisposable
             this.completionEvent.Set();
             this.IsCompleted = true;
 
-            if (this.exception == null)
+            if (this.exception == null && !threadPool.isShutdown)
             {
                 this.SendAllContinuationsToTheThreadPool();
             }
@@ -252,7 +253,7 @@ public class MyThreadPool : IDisposable
         {
             while (this.continuations.Count > 0)
             {
-                this.threadPool.Run(this.continuations.Dequeue());
+                threadPool.Run(this.continuations.Dequeue());
             }
         }
 
