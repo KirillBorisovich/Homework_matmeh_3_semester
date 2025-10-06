@@ -110,7 +110,9 @@ public class ThreadPoolTests
         {
             Thread.Sleep(1000);
             throw new InvalidOperationException();
+#pragma warning disable CS0162
             return 2;
+#pragma warning restore CS0162
         });
         var continueTask = task.ContinueWith(x => x * x);
 
