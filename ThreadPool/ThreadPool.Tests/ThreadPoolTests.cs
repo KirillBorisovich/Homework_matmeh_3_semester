@@ -160,4 +160,10 @@ public class ThreadPoolTests
 
         Assert.That(ex?.InnerException, Is.InstanceOf<OperationCanceledException>());
     }
+
+    [Test]
+    public void ThreadsCountTest()
+    {
+        Assert.That(this.threadPool.ThreadsCount, Is.EqualTo(Environment.ProcessorCount));
+    }
 }
