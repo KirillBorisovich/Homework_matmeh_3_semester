@@ -11,7 +11,7 @@ public class ThreadPoolTests
     [SetUp]
     public void Setup()
     {
-        this.threadPool = new MyThreadPool();
+        this.threadPool = new MyThreadPool(Environment.ProcessorCount);
     }
 
     [TearDown]

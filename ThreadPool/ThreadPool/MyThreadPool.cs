@@ -14,10 +14,10 @@ public class MyThreadPool : IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="MyThreadPool"/> class.
     /// </summary>
-    public MyThreadPool()
+    public MyThreadPool(int threadCount)
     {
         this.taskQueue = new TaskQueue<Action>(this);
-        this.threads = new Thread[Environment.ProcessorCount];
+        this.threads = new Thread[threadCount];
         for (var i = 0; i < this.threads.Length; i++)
         {
             this.threads[i] = new Thread(
