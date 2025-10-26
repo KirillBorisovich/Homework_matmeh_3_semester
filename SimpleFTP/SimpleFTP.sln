@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleFTP", "SimpleFTP\SimpleFTP.csproj", "{87E9086F-C505-4F88-964A-1BA3A29C2298}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestProject1", "TestProject1\TestProject1.csproj", "{8A65E0F9-9394-4367-AB3F-7D5F3678DDD0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{87E9086F-C505-4F88-964A-1BA3A29C2298}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{87E9086F-C505-4F88-964A-1BA3A29C2298}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{87E9086F-C505-4F88-964A-1BA3A29C2298}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{87E9086F-C505-4F88-964A-1BA3A29C2298}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8A65E0F9-9394-4367-AB3F-7D5F3678DDD0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8A65E0F9-9394-4367-AB3F-7D5F3678DDD0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8A65E0F9-9394-4367-AB3F-7D5F3678DDD0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8A65E0F9-9394-4367-AB3F-7D5F3678DDD0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
