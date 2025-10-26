@@ -1,4 +1,8 @@
-﻿namespace TestProject1;
+﻿// <copyright file="UnitTest1.cs" company="Bengya Kirill">
+// Copyright (c) Bengya Kirill under MIT License.
+// </copyright>
+
+namespace TestProject1;
 
 public class Tests
 {
