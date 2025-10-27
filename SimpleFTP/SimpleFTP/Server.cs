@@ -14,7 +14,7 @@ using System.Net.Sockets;
 public class Server(int port)
 {
     private readonly int port = port;
-    private bool isStop;
+    private volatile bool isStop;
 
     /// <summary>
     /// Start the server.
@@ -22,7 +22,7 @@ public class Server(int port)
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     public async Task Start()
     {
-        var listener = new TcpListener(IPAddress.Any, this.port);
+        using var listener = new TcpListener(IPAddress.Any, this.port);
         listener.Start();
         while (!this.isStop)
         {
@@ -69,7 +69,7 @@ public class Server(int port)
                 await Get(stream, writer, data);
                 return;
             default:
-                await writer.WriteAsync("-1 Unknown request\n");
+                await writer.WriteAsync("-2 Unknown request\n");
                 return;
         }
     }
@@ -83,7 +83,7 @@ public class Server(int port)
         }
         catch (InvalidOperationException ex)
         {
-            await writer.WriteAsync($"-1 {ex.Message}\n");
+            await writer.WriteAsync($"-3 {ex.Message}\n");
             return;
         }
 
@@ -99,12 +99,12 @@ public class Server(int port)
         var responseString = (directories.Length + files.Length).ToString();
         foreach (var directory in directories)
         {
-            responseString += $" {path}/{directory} true";
+            responseString += $" {directory[Directory.GetCurrentDirectory().Length..]} true";
         }
 
         foreach (var file in files)
         {
-            responseString += $" {path}/{file} false";
+            responseString += $" {file[Directory.GetCurrentDirectory().Length..]} false";
         }
 
         responseString += "\n";
@@ -120,7 +120,7 @@ public class Server(int port)
         }
         catch (InvalidOperationException ex)
         {
-            await writer.WriteAsync($"-1 {ex.Message}\n");
+            await writer.WriteAsync($"-3 {ex.Message}\n");
             return;
         }
 
@@ -141,7 +141,7 @@ public class Server(int port)
 
         await using var fileStream = File.OpenRead(path);
         var buffer = new byte[8192];
-        int bytesRead;
+        var bytesRead = 0;
 
         while ((bytesRead = await fileStream.ReadAsync(buffer)) > 0)
         {
