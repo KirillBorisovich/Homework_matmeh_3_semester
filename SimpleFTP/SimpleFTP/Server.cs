@@ -29,15 +29,15 @@ public class Server(int port)
             var socket = await listener.AcceptSocketAsync();
             await Task.Run(async () =>
             {
-                var stream = new NetworkStream(socket);
-                var reader = new StreamReader(stream);
-                var writer = new StreamWriter(stream) { AutoFlush = true };
+                await using var stream = new NetworkStream(socket);
+                using var reader = new StreamReader(stream);
+                await using var writer = new StreamWriter(stream);
+                writer.AutoFlush = true;
                 while (socket.Connected && !this.isStop)
                 {
                     await ProcessTheRequest(stream, reader,  writer);
                 }
 
-                /*Нужно ли закрывать?*/
                 socket.Close();
             });
         }
@@ -49,29 +49,6 @@ public class Server(int port)
     public void Stop()
     {
         this.isStop = true;
-    }
-
-    private static string GetAPath(string data)
-    {
-        var response = data.Split();
-        string path;
-        if (response.Length < 2 || response[1].Length < 2)
-        {
-            path = Directory.GetCurrentDirectory();
-        }
-        else
-        {
-            if (response[1].Length >= 5 && response[1][..5] == "./../")
-            {
-                throw new InvalidOperationException("Using relative paths backwards is prohibited.");
-            }
-
-            path = Path.GetFullPath(Path.Combine(
-                Directory.GetCurrentDirectory(),
-                response[1][0] == '/' ? response[1][1..] : response[1]));
-        }
-
-        return path;
     }
 
     private static async Task ProcessTheRequest(Stream stream, StreamReader reader, StreamWriter writer)
@@ -99,7 +76,16 @@ public class Server(int port)
 
     private static async Task List(StreamWriter writer, string data)
     {
-        var path = GetAPath(data);
+        string path;
+        try
+        {
+            path = GetAPath(data);
+        }
+        catch (InvalidOperationException ex)
+        {
+            await writer.WriteAsync($"-1 {ex.Message}\n");
+            return;
+        }
 
         if (!Directory.Exists(path))
         {
@@ -127,20 +113,31 @@ public class Server(int port)
 
     private static async Task Get(Stream stream, StreamWriter writer, string data)
     {
-        var path = GetAPath(data);
+        string path;
+        try
+        {
+            path = GetAPath(data);
+        }
+        catch (InvalidOperationException ex)
+        {
+            await writer.WriteAsync($"-1 {ex.Message}\n");
+            return;
+        }
 
         if (!File.Exists(path))
         {
             await writer.WriteAsync("-1 File not found.\n");
+            return;
         }
 
         if (Directory.Exists(path))
         {
             await writer.WriteAsync("-1 This is the folder.\n");
+            return;
         }
 
         var fileInfo = new FileInfo(path);
-        await writer.WriteAsync($"{fileInfo.Name}\n");
+        await writer.WriteAsync($"{fileInfo.Length}\n");
 
         await using var fileStream = File.OpenRead(path);
         var buffer = new byte[8192];
@@ -152,5 +149,28 @@ public class Server(int port)
         }
 
         await stream.FlushAsync();
+    }
+
+    private static string GetAPath(string data)
+    {
+        var response = data.Split();
+        string path;
+
+        if (response.Length < 2 || response[1].Length <= 2)
+        {
+            path = Directory.GetCurrentDirectory();
+        }
+        else if (response[1].Contains(".."))
+        {
+            throw new InvalidOperationException("Using relative paths backwards is prohibited.");
+        }
+        else
+        {
+            path = Path.GetFullPath(Path.Combine(
+                Directory.GetCurrentDirectory(),
+                response[1][0] == '/' ? response[1][1..] : response[1]));
+        }
+
+        return path;
     }
 }
