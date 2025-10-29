@@ -63,6 +63,11 @@ public class Client : IDisposable
             throw new PathFormatException("The path should start with '/'");
         }
 
+        if (!pathForServer.StartsWith('/'))
+        {
+            pathForServer = "/" + pathForServer;
+        }
+
         var fileName = Path.GetFileName(pathForServer);
 
         if (downloadPath.Length < 3)
