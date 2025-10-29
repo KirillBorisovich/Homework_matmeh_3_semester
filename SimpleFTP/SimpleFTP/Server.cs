@@ -160,7 +160,7 @@ public class Server(int port)
         await using var fileStream = File.OpenRead(path);
         const int sizeBuffer = 8192;
         var buffer = new byte[sizeBuffer];
-        var bytesRead = 0;
+        int bytesRead;
 
         while ((bytesRead = await fileStream.ReadAsync(buffer)) > 0)
         {

@@ -6,6 +6,9 @@ namespace SimpleFTP;
 
 using System.Net.Sockets;
 
+/// <summary>
+/// Client to server for downloading files.
+/// </summary>
 public class Client : IDisposable
 {
     private readonly TcpClient client;
@@ -14,6 +17,11 @@ public class Client : IDisposable
     private readonly StreamReader reader;
     private bool disposed;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Client"/> class.
+    /// </summary>
+    /// <param name="ip">The IP for the connection.</param>
+    /// <param name="port">Connection port.</param>
     public Client(string ip, int port)
     {
         this.client = new TcpClient(ip, port);
@@ -22,6 +30,12 @@ public class Client : IDisposable
         this.reader = new StreamReader(this.stream);
     }
 
+    /// <summary>
+    /// Request a list of files and folders.
+    /// </summary>
+    /// <param name="path">The path to the folder on the server.</param>
+    /// <returns>Response to the request: the number, names, and flags that
+    /// take the value "true" for directories and "false" for files.</returns>
     public async Task<string> List(string path)
     {
         ObjectDisposedException.ThrowIf(this.disposed, this);
@@ -33,6 +47,15 @@ public class Client : IDisposable
         return data!;
     }
 
+    /// <summary>
+    /// Request file download.
+    /// </summary>
+    /// <param name="pathForServer">The path to the file on the server.</param>
+    /// <param name="downloadPath">The path to the folder where to download the file.</param>
+    /// <exception cref="PathFormatException">The path was entered incorrectly.</exception>
+    /// <exception cref="InvalidDataException">Invalid file size response from server.</exception>
+    /// <exception cref="IOException">Unexpected end of stream.</exception>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     public async Task Get(string pathForServer, string downloadPath)
     {
         if (pathForServer.Contains('\\'))
@@ -60,7 +83,7 @@ public class Client : IDisposable
             throw new InvalidDataException("Invalid file size response from server");
         }
 
-        downloadPath += fileName;
+        downloadPath += downloadPath[^1] == '/' ? fileName : '/' + fileName;
         FileStream fileStream;
         try
         {
@@ -93,6 +116,9 @@ public class Client : IDisposable
         await fileStream.DisposeAsync();
     }
 
+    /// <summary>
+    /// Dispose of the object.
+    /// </summary>
     public void Dispose()
     {
         this.writer.Dispose();
