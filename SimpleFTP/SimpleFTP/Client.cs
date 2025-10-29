@@ -40,6 +40,11 @@ public class Client : IDisposable
     {
         ObjectDisposedException.ThrowIf(this.disposed, this);
 
+        if (path.Contains('\\'))
+        {
+            path = path.Replace('\\', '/');
+        }
+
         await this.writer.WriteLineAsync($"1 {path}\n");
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
         var data = await this.reader.ReadLineAsync(cts.Token);
@@ -60,7 +65,7 @@ public class Client : IDisposable
     {
         if (pathForServer.Contains('\\'))
         {
-            throw new PathFormatException("The path should start with '/'");
+            pathForServer = pathForServer.Replace('\\', '/');
         }
 
         if (!pathForServer.StartsWith('/'))
