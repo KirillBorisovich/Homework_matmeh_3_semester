@@ -90,12 +90,14 @@ public class ServerClientInteractionTests
 
         using var sha256 = SHA256.Create();
 
-        await using var stream1 = File.OpenRead(Directory.GetCurrentDirectory() + '/' + Path.GetFileName(pathForServer));
-        await using var stream2 = File.OpenRead(Directory.GetCurrentDirectory() + "/TestDirectory/" + Path.GetFileName(pathForServer));
+        var stream1 = File.OpenRead(Directory.GetCurrentDirectory() + '/' + Path.GetFileName(pathForServer));
+        var stream2 = File.OpenRead(Directory.GetCurrentDirectory() + "/TestDirectory/" + Path.GetFileName(pathForServer));
 
         var hash1 = await sha256.ComputeHashAsync(stream1);
         var hash2 = await sha256.ComputeHashAsync(stream2);
 
+        await stream1.DisposeAsync();
+        await stream2.DisposeAsync();
         Directory.Delete("TestDirectory", true);
 
         Assert.That(hash1.SequenceEqual(hash2), Is.True);
