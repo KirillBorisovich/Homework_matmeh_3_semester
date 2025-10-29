@@ -27,18 +27,16 @@ public class Server(int port)
         while (!this.isStop)
         {
             var socket = await listener.AcceptSocketAsync();
-            await Task.Run(async () =>
+            _ = Task.Run(async () =>
             {
                 await using var stream = new NetworkStream(socket);
                 using var reader = new StreamReader(stream);
                 await using var writer = new StreamWriter(stream);
                 writer.AutoFlush = true;
-                while (socket.Connected && !this.isStop)
+                while (!this.isStop)
                 {
-                    await ProcessTheRequest(stream, reader,  writer);
+                    await ProcessTheRequest(stream, reader, writer);
                 }
-
-                socket.Close();
             });
         }
     }
@@ -55,7 +53,7 @@ public class Server(int port)
     {
         var data = await reader.ReadLineAsync();
 
-        if (data == null)
+        if (string.IsNullOrEmpty(data))
         {
             return;
         }

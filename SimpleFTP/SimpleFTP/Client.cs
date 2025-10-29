@@ -76,7 +76,7 @@ public class Client : IDisposable
 
     private static void ServerExceptionHandler(string? data)
     {
-        if (data == null)
+        if (string.IsNullOrEmpty(data))
         {
             throw new IOException("Server closed connection");
         }

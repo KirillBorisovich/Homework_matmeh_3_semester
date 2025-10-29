@@ -15,9 +15,12 @@ public class Tests
     [OneTimeSetUp]
     public void OneTimeSetup()
     {
+        this.server = new Server(Port);
+        _ = this.server.Start();
+        this.client = new Client("localhost", Port);
     }
 
-    [TearDown]
+    [OneTimeTearDown]
     public void TearDown()
     {
         this.client.Dispose();
@@ -27,9 +30,6 @@ public class Tests
     [SetUp]
     public void Setup()
     {
-        this.server = new Server(Port);
-        _ = this.server.Start();
-        this.client = new Client("localhost", Port);
     }
 
     [Test]
@@ -42,15 +42,14 @@ public class Tests
     [Test]
     public void ListForAnNonExistingDirectoryTest()
     {
-        var ex = Assert.ThrowsAsync<FileNotFoundException>(async () =>
+        Assert.ThrowsAsync<FileNotFoundException>(async () =>
             await this.client.List("./weqrqwrwqer"));
     }
 
-    /*[Test]
+    [Test]
     public async Task ListForFile()
     {
         var data1 = await this.client.List("./");
-        var data3 = await this.client.List("./");
         var result = data1.Split();
         var indexForFile = 0;
         for (var i = 0; i < result.Length; i++)
@@ -62,7 +61,7 @@ public class Tests
             }
         }
 
-        var data2 = await this.client.List(result[indexForFile]);
-        var ex = Assert.ThrowsAsync<FileNotFoundException>(() => throw new FileNotFoundException());
-    }*/
+        Assert.ThrowsAsync<FileNotFoundException>(async () =>
+            await this.client.List(result[indexForFile]));
+    }
 }
