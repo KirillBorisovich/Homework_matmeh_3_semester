@@ -29,13 +29,32 @@ public class Server(int port)
             var socket = await listener.AcceptSocketAsync();
             _ = Task.Run(async () =>
             {
-                await using var stream = new NetworkStream(socket);
-                using var reader = new StreamReader(stream);
-                await using var writer = new StreamWriter(stream);
-                writer.AutoFlush = true;
-                while (!this.isStop)
+                using (socket)
                 {
-                    await ProcessTheRequest(stream, reader, writer);
+                    await using var stream = new NetworkStream(socket);
+                    using var reader = new StreamReader(stream);
+                    await using var writer = new StreamWriter(stream);
+                    writer.AutoFlush = true;
+                    while (!this.isStop)
+                    {
+                        try
+                        {
+                            await ProcessTheRequest(stream, reader, writer);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            break;
+                        }
+                        catch (IOException)
+                        {
+                            break;
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine(ex);
+                            await writer.WriteAsync("-4 Server error\n");
+                        }
+                    }
                 }
             });
         }
@@ -51,7 +70,8 @@ public class Server(int port)
 
     private static async Task ProcessTheRequest(Stream stream, StreamReader reader, StreamWriter writer)
     {
-        var data = await reader.ReadLineAsync();
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        var data = await reader.ReadLineAsync(cts.Token);
 
         if (string.IsNullOrEmpty(data))
         {
@@ -138,7 +158,8 @@ public class Server(int port)
         await writer.WriteAsync($"{fileInfo.Length}\n");
 
         await using var fileStream = File.OpenRead(path);
-        var buffer = new byte[8192];
+        const int sizeBuffer = 8192;
+        var buffer = new byte[sizeBuffer];
         var bytesRead = 0;
 
         while ((bytesRead = await fileStream.ReadAsync(buffer)) > 0)

@@ -27,17 +27,31 @@ public class Client : IDisposable
         ObjectDisposedException.ThrowIf(this.disposed, this);
 
         await this.writer.WriteLineAsync($"1 {path}\n");
-        var data = await this.reader.ReadLineAsync();
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        var data = await this.reader.ReadLineAsync(cts.Token);
         ServerExceptionHandler(data);
         return data!;
     }
 
     public async Task Get(string pathForServer, string downloadPath)
     {
+        if (pathForServer.Contains('\\'))
+        {
+            throw new PathFormatException("The path should start with '/'");
+        }
+
+        var fileName = Path.GetFileName(pathForServer);
+
+        if (downloadPath.Length < 3)
+        {
+            downloadPath = Directory.GetCurrentDirectory();
+        }
+
         ObjectDisposedException.ThrowIf(this.disposed, this);
 
         await this.writer.WriteLineAsync($"2 {pathForServer}\n");
-        var length = await this.reader.ReadLineAsync();
+        using var cts0 = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        var length = await this.reader.ReadLineAsync(cts0.Token);
 
         ServerExceptionHandler(length);
 
@@ -46,14 +60,26 @@ public class Client : IDisposable
             throw new InvalidDataException("Invalid file size response from server");
         }
 
-        await using var fileStream = File.Create(downloadPath);
-        var buffer = new byte[8192];
+        downloadPath += fileName;
+        FileStream fileStream;
+        try
+        {
+            fileStream = File.Create(downloadPath);
+        }
+        catch (Exception)
+        {
+            throw new PathFormatException("Something is wrong in the path for the download file.");
+        }
+
+        const int sizeBuffer = 8192;
+        var buffer = new byte[sizeBuffer];
         var totalRead = 0;
 
         while (totalRead < fileSize)
         {
             var bytesToRead = (int)Math.Min(buffer.Length, fileSize - totalRead);
-            var bytesRead = await this.stream.ReadAsync(buffer, 0, bytesToRead);
+            using var cts1 = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+            var bytesRead = await this.stream.ReadAsync(buffer, 0, bytesToRead, cts1.Token);
 
             if (bytesRead == 0)
             {
@@ -63,6 +89,8 @@ public class Client : IDisposable
             await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead));
             totalRead += bytesRead;
         }
+
+        await fileStream.DisposeAsync();
     }
 
     public void Dispose()
