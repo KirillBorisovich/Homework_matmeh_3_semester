@@ -6,18 +6,28 @@ namespace ParallelMatrixMultiplication.Tests;
 
 public class MatrixTests
 {
-    private readonly int[,] matrix1;
-    private readonly int[,] matrix2;
-    private readonly int[,] resultOfParallelMultiplication;
-    private readonly int[,] resultOfSequentialMultiplication;
-
-    public MatrixTests()
+    private readonly int[,] matrix1 = new int[,]
     {
-        this.matrix1 = Matrix.ReadFromFile("../../../TestInput1.txt");
-        this.matrix2 = Matrix.ReadFromFile("../../../TestInput2.txt");
-        this.resultOfParallelMultiplication = Matrix.ParallelMultiplication(this.matrix1, this.matrix2);
-        this.resultOfSequentialMultiplication = Matrix.Multiplication(this.matrix1, this.matrix2);
-    }
+        { 1, 2, 3, 4, 5 },
+        { 6, 7, 8, 9, 10 },
+        { 11, 12, 13, 14, 15 },
+    };
+
+    private readonly int[,] matrix2 = new[,]
+    {
+        { 1, 2 },
+        { 3, 4 },
+        { 5, 6 },
+        { 7, 8 },
+        { 9, 10 },
+    };
+
+    private readonly int[,] expectedResult = new[,]
+    {
+        { 95, 110 },
+        { 220, 260 },
+        { 345, 410 },
+    };
 
     [Test]
     public void TheMatricesAreEqualTest()
@@ -52,6 +62,8 @@ public class MatrixTests
     [Test]
     public void ReadFromFileTest()
     {
+        var inputMatrix1 = Matrix.ReadFromFile("../../../TestInput1.txt");
+        var inputMatrix2 = Matrix.ReadFromFile("../../../TestInput2.txt");
         var sample1 = new[,]
         {
             { 1, 2, 3, 4, 5 },
@@ -69,8 +81,8 @@ public class MatrixTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(Matrix.Equals(this.matrix1, sample1), Is.True);
-            Assert.That(Matrix.Equals(this.matrix2, sample2), Is.True);
+            Assert.That(Matrix.Equals(inputMatrix1, sample1), Is.True);
+            Assert.That(Matrix.Equals(inputMatrix2, sample2), Is.True);
         });
     }
 
@@ -91,38 +103,24 @@ public class MatrixTests
     [Test]
     public void MultiplicationTest()
     {
-        var sample = new[,]
-        {
-            { 95, 110 },
-            { 220, 260 },
-            { 345, 410 },
-        };
-        Assert.That(Matrix.Equals(this.resultOfSequentialMultiplication, sample), Is.True);
+        var result = Matrix.Multiply(this.matrix1, this.matrix2);
+
+        Assert.That(Matrix.Equals(result, this.expectedResult), Is.True);
     }
 
     [Test]
     public void MultiplicationShouldThrowIncompatibleMatrixSizesExceptionIfIncompatibleMatrixSizes()
     {
-        var sample = new[,]
-        {
-            { 95, 110 },
-            { 220, 260 },
-            { 345, 410 },
-        };
         Assert.Throws<IncompatibleMatrixSizesException>(
-            () => Matrix.Multiplication(this.matrix1, sample));
+            () => Matrix.Multiply(this.matrix1, this.expectedResult));
     }
 
     [Test]
     public void ParallelMultiplicationTest()
     {
-        var sample = new[,]
-        {
-            { 95, 110 },
-            { 220, 260 },
-            { 345, 410 },
-        };
-        Assert.That(Matrix.Equals(this.resultOfParallelMultiplication, sample), Is.True);
+        var result = Matrix.ParallelMultiplication(this.matrix1, this.matrix2);
+
+        Assert.That(Matrix.Equals(result, this.expectedResult), Is.True);
     }
 
     [Test]
@@ -141,16 +139,17 @@ public class MatrixTests
     [Test]
     public void SaveToFileTest()
     {
-        Matrix.SaveToFile("../../../TestResultInput.txt", this.resultOfSequentialMultiplication);
+        var result = Matrix.ParallelMultiplication(this.matrix1, this.matrix2);
+        Matrix.SaveToFile("../../../TestResultInput.txt", result);
         var input = Matrix.ReadFromFile("../../../TestResultInput.txt");
-        Assert.That(Matrix.Equals(input, this.resultOfSequentialMultiplication), Is.True);
+        Assert.That(Matrix.Equals(input, result), Is.True);
     }
 
     [Test]
     public void SaveToFileShouldThrowArgumentExceptionIfAnEmptyPath()
     {
         Assert.Throws<ArgumentException>(
-            () => Matrix.SaveToFile(string.Empty, this.resultOfSequentialMultiplication));
+            () => Matrix.SaveToFile(string.Empty, Matrix.ParallelMultiplication(this.matrix1, this.matrix2)));
     }
 
     [Test]

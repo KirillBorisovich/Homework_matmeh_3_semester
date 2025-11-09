@@ -39,7 +39,7 @@ public static class UserInterface
             var matrix2 = Matrix.Generate(size, size);
 
             var time1 = MeasureTime(
-                () => { Matrix.Multiplication(matrix1, matrix2); });
+                () => Matrix.Multiply(matrix1, matrix2));
             var time2 = MeasureTime(
                 () => { Matrix.ParallelMultiplication(matrix1, matrix2); });
             Console.WriteLine($"---------------\n" +
@@ -49,35 +49,33 @@ public static class UserInterface
                               $"Parallel multiplication time: {time2.AverageTime,8:F2} ± {time2.StandardDeviation:F2} ms\n" +
                               $"Acceleration: {time1.AverageTime / time2.AverageTime,8:F2}");
         }
+    }
 
-        return;
+    private static (double AverageTime, double StandardDeviation) MeasureTime(Action action)
+    {
+        action();
 
-        (double AverageTime, double StandardDeviation) MeasureTime(Action action)
+        const int iterations = 10;
+        var totalTime = new List<double>();
+
+        for (var i = 0; i < iterations; i++)
         {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+
+            var watch = Stopwatch.StartNew();
             action();
+            watch.Stop();
 
-            const int iterations = 10;
-            var totalTime = new List<double>();
-
-            for (var i = 0; i < iterations; i++)
-            {
-                GC.Collect();
-                GC.WaitForPendingFinalizers();
-                GC.Collect();
-
-                var watch = Stopwatch.StartNew();
-                action();
-                watch.Stop();
-
-                totalTime.Add(watch.ElapsedMilliseconds);
-            }
-
-            var averageTime = totalTime.Sum() / iterations;
-            var sumOfSquaredDeviations = totalTime.Sum(item => Math.Pow(item - averageTime, 2));
-            var standardDeviation = Math.Sqrt(sumOfSquaredDeviations / totalTime.Count);
-
-            return (averageTime, standardDeviation);
+            totalTime.Add(watch.ElapsedMilliseconds);
         }
+
+        var averageTime = totalTime.Sum() / iterations;
+        var sumOfSquaredDeviations = totalTime.Sum(item => Math.Pow(item - averageTime, 2));
+        var standardDeviation = Math.Sqrt(sumOfSquaredDeviations / totalTime.Count);
+
+        return (averageTime, standardDeviation);
     }
 
     private static string GetValidInput(string prompt)

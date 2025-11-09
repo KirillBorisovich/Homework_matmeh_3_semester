@@ -17,50 +17,43 @@ try
     {
         case "1":
             UserInterface.MultiplyMatricesFromAFile();
-            return 0;
+            break;
         case "2":
             UserInterface.MakeOutMeasurementsOnTestMatrices();
-            return 0;
+            break;
         case "0":
-            return 0;
+            break;
         default:
             Console.WriteLine("Unknown number of operations");
-            return 0;
+            break;
     }
 }
 catch (FileNotFoundException ex)
 {
     Console.WriteLine($"File '{ex.FileName}' not found");
-    return 0;
 }
 catch (DirectoryNotFoundException ex)
 {
     Console.WriteLine($"Directory not found: {ex.Message}");
-    return 0;
 }
 catch (UnauthorizedAccessException)
 {
     Console.WriteLine("No permission to read file");
-    return 0;
 }
 catch (InvalidDataException)
 {
     Console.WriteLine("Incorrect data format");
-    return 0;
 }
 catch (EmptyFileException)
 {
     Console.WriteLine("The file is empty");
-    return 0;
 }
 catch (IncompatibleMatrixSizesException)
 {
     Console.WriteLine("Matrix multiplication cannot be performed:" +
                       "dimensionality mismatch.");
-    return 0;
 }
 catch (ArgumentException)
 {
     Console.WriteLine("File path cannot be null or empty");
-    return 0;
 }

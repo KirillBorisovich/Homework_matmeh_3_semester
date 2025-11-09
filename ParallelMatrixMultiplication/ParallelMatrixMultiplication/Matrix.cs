@@ -67,7 +67,7 @@ public static class Matrix
     /// <returns>The result of multiplication.</returns>
     /// <exception cref="IncompatibleMatrixSizesException">Exception about
     /// incompatibility of matrix sizes for multiplication.</exception>
-    public static int[,] Multiplication(int[,] matrix1, int[,] matrix2)
+    public static int[,] Multiply(int[,] matrix1, int[,] matrix2)
     {
         if (matrix1.GetLength(1) != matrix2.GetLength(0))
         {
