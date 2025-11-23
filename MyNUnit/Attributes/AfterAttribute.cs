@@ -7,5 +7,5 @@ namespace Attributes;
 /// <summary>
 /// An attribute indicating the method to be called after the test is completed.
 /// </summary>
-[AttributeUsage(AttributeTargets.Class)]
+[AttributeUsage(AttributeTargets.Method)]
 public class AfterAttribute : Attribute;

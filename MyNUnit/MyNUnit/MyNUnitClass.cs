@@ -1,14 +1,28 @@
+// <copyright file="MyNUnitClass.cs" company="Bengya Kirill">
+// Copyright (c) Bengya Kirill under MIT License.
+// </copyright>
+
 namespace MyNUnit;
 
 using System.Collections.Concurrent;
 using System.Reflection;
 using Attributes;
 
+/// <summary>
+/// The type for running test methods.
+/// </summary>
 public class MyNUnitClass
 {
-    private readonly ConcurrentBag<int> safeBag = [];
+    private readonly ConcurrentBag<string> safeBag = [];
 
-    public static string RunAllTheTestsAlongThisPath(string path)
+    /// <summary>
+    /// Run all the tests along path.
+    /// </summary>
+    /// <param name="path">The path to the assemblies.</param>
+    /// <returns>The result of the test methods execution.</returns>
+    /// <exception cref="ArgumentException">The exception is that the file
+    /// or directory is not found.</exception>
+    public async Task<string> RunAllTheTestsAlongThisPath(string path)
     {
         if (!File.Exists(path))
         {
@@ -17,71 +31,16 @@ public class MyNUnitClass
                 throw new ArgumentException("Incorrect file extension.");
             }
 
-            return RunAllTheTestsInTheFile(path);
+            return await this.RunAllTheTestsInTheFile(path);
         }
         else if (!Directory.Exists(path))
         {
-            return RunAllTheTestsInTheDirectory(path);
+            return await this.RunAllTheTestsInTheDirectory(path);
         }
         else
         {
             throw new ArgumentException("No such file or directory.");
         }
-    }
-
-    private static string RunAllTheTestsInTheFile(string path)
-    {
-        var assembly = Assembly.LoadFile(path);
-        foreach (var type in assembly.ExportedTypes)
-        {
-            
-        }
-    }
-
-    private static string RunAllTheTestsInTheDirectory(string path)
-    {
-        var assemblyNames = Directory.EnumerateFiles(path, "*.dll");
-        foreach (var assemblyName in assemblyNames)
-        {
-            var assembly = Assembly.LoadFile(assemblyName);
-            foreach (var type in assembly.ExportedTypes)
-            {
-                
-            }
-        }
-    }
-
-    private static string RunAllTheTestsInTheClass(Type type)
-    {
-        ArgumentNullException.ThrowIfNull(type);
-
-        var methods =
-            FindAllTheMethodsWithTheNecessaryAttributesForTestingInTheClass(type);
-
-        if (methods.Count == 0)
-        {
-            throw new NoMethodsFoundForTestingException();
-        }
-
-        Parallel.ForEach(
-            methods[nameof(BeforeClassAttribute)],
-            method => method.Invoke(null, null));
-
-        Parallel.ForEach(methods[nameof(TestAttribute)], testMethod =>
-        {
-            var instance = Activator.CreateInstance(type);
-            foreach (var beforeMethod in methods[nameof(BeforeAttribute)])
-            {
-                beforeMethod.Invoke(instance, null);
-            }
-
-            testMethod.Invoke(instance, null);
-
-            foreach (var afterMethod in methods[nameof(AfterAttribute)])
-            {
-                afterMethod.Invoke(instance, null);
-            }
-        })
     }
 
     private static Dictionary<string, List<MethodInfo>>
@@ -113,5 +72,124 @@ public class MyNUnitClass
         }
 
         return methods;
+    }
+
+    private async Task<string> RunAllTheTestsInTheDirectory(string path)
+    {
+        var assemblyFiles = Directory.EnumerateFiles(path, "*.dll")
+            .Concat(Directory.EnumerateFiles(path, "*.exe"));
+
+        var tasks = assemblyFiles.Select(file =>
+        {
+            var assembly = Assembly.LoadFile(file);
+            return this.RunAllTheTestsInTheFile(assembly);
+        });
+
+        var results = await Task.WhenAll(tasks);
+
+        return string.Concat(results);
+    }
+
+    private async Task<string> RunAllTheTestsInTheFile(string path)
+    {
+        var assembly = Assembly.LoadFile(path);
+        return await this.RunAllTheTestsInTheFile(assembly);
+    }
+
+    private async Task<string> RunAllTheTestsInTheFile(Assembly assembly)
+    {
+        await Parallel.ForEachAsync(
+            assembly.ExportedTypes,
+            async (type, _) => await this.RunAllTheTestsInTheClass(type));
+
+        return string.Concat(this.safeBag);
+    }
+
+    private async ValueTask RunAllTheTestsInTheClass(Type type)
+    {
+        ArgumentNullException.ThrowIfNull(type);
+
+        var methods =
+            FindAllTheMethodsWithTheNecessaryAttributesForTestingInTheClass(type);
+
+        if (methods.Count == 0)
+        {
+            return;
+        }
+
+        if (methods.TryGetValue(nameof(BeforeClassAttribute), out var beforeClassMethods))
+        {
+            foreach (var beforeClassMethod in beforeClassMethods)
+            {
+                beforeClassMethod.Invoke(null, null);
+            }
+        }
+
+        await Parallel.ForEachAsync(
+            methods[nameof(TestAttribute)],
+            (testMethod, _) =>
+            {
+                var testAttribute = testMethod.GetCustomAttribute<TestAttribute>();
+                if (testAttribute?.Ignore != null)
+                {
+                    this.safeBag.Add($"Test Ignored: {testMethod.Name}\n" +
+                                     $"    Reason: {testAttribute.Ignore}\n \n");
+
+                    return ValueTask.CompletedTask;
+                }
+
+                var instance = Activator.CreateInstance(type);
+                if (methods.TryGetValue(nameof(BeforeAttribute), out var beforeMethods))
+                {
+                    foreach (var beforeMethod in beforeMethods)
+                    {
+                        beforeMethod.Invoke(instance, null);
+                    }
+                }
+
+                try
+                {
+                    testMethod.Invoke(instance, null);
+                    this.safeBag.Add($"Test Passed: {testMethod.Name}\n \n");
+                }
+                catch (TargetInvocationException ex) when (ex.InnerException is AssertFailedException)
+                {
+                    this.safeBag.Add($"Test Failed: {testMethod.Name}\n" + ex.InnerException.Message + "\n");
+                }
+                catch (TargetInvocationException ex)
+                {
+                    if (testAttribute?.Expected != null &&
+                        ex.InnerException != null &&
+                        ex.InnerException.GetType() == testAttribute.Expected)
+                    {
+                        this.safeBag.Add($"Test Passed: {testMethod.Name}\n \n");
+                    }
+                    else
+                    {
+                        this.safeBag.Add(
+                            $"Test Failed: {testMethod.Name}\n" +
+                            $"    Unexpected exception: {ex.InnerException?.GetType().Name}\n" +
+                            $"    Message: {ex.InnerException?.Message}\n \n");
+                    }
+                }
+
+                if (methods.TryGetValue(nameof(AfterAttribute), out var afterMethods))
+                {
+                    foreach (var afterMethod in afterMethods)
+                    {
+                        afterMethod.Invoke(instance, null);
+                    }
+                }
+
+                return ValueTask.CompletedTask;
+            });
+
+        if (methods.TryGetValue(nameof(AfterClassAttribute), out var afterClassMethods))
+        {
+            foreach (var afterClassMethod in afterClassMethods)
+            {
+                afterClassMethod.Invoke(null, null);
+            }
+        }
     }
 }
