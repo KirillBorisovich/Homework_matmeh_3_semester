@@ -2,11 +2,12 @@
 // Copyright (c) Bengya Kirill under MIT License.
 // </copyright>
 
+using Core;
+
 namespace MyNUnit;
 
 using System.Collections.Concurrent;
 using System.Reflection;
-using Attributes;
 
 /// <summary>
 /// The type for running test methods.

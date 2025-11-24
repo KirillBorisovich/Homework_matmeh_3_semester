@@ -2,7 +2,7 @@
 // Copyright (c) Bengya Kirill under MIT License.
 // </copyright>
 
-namespace Attributes;
+namespace Core;
 
 /// <summary>
 /// Provides a set of static methods for checking conditions in MyNUnit.

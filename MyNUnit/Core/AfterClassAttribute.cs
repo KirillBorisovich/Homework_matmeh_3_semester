@@ -2,7 +2,7 @@
 // Copyright (c) Bengya Kirill under MIT License.
 // </copyright>
 
-namespace Attributes;
+namespace Core;
 
 /// <summary>
 /// An attribute indicating the method that will be called after all tests in the class have been performed.

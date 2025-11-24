@@ -2,7 +2,7 @@
 // Copyright (c) Bengya Kirill under MIT License.
 // </copyright>
 
-namespace Attributes;
+namespace Core;
 
 /// <summary>
 /// An attribute indicating the method to be called before executing all tests in the class.

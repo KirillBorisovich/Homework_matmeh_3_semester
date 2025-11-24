@@ -2,7 +2,7 @@
 // Copyright (c) Bengya Kirill under MIT License.
 // </copyright>
 
-namespace Attributes;
+namespace Core;
 
 /// <summary>
 /// An attribute indicating the method under test.
@@ -36,12 +36,12 @@ public class TestAttribute : Attribute
     }
 
     /// <summary>
-    /// Gets expected type of exception.
+    /// Gets or sets expected type of exception.
     /// </summary>
-    public Type? Expected { get; }
+    public Type? Expected { get; set; }
 
     /// <summary>
-    /// Gets the reason for canceling the test run.
+    /// Gets or sets the reason for canceling the test run.
     /// </summary>
-    public string? Ignore { get; }
+    public string? Ignore { get; set; }
 }

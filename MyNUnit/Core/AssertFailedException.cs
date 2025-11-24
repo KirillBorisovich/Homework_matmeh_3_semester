@@ -2,7 +2,7 @@
 // Copyright (c) Bengya Kirill under MIT License.
 // </copyright>
 
-namespace Attributes;
+namespace Core;
 
 /// <summary>
 /// Exceptions about a failed test.
