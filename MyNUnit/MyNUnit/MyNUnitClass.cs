@@ -2,12 +2,13 @@
 // Copyright (c) Bengya Kirill under MIT License.
 // </copyright>
 
-using Core;
+using System.Diagnostics;
 
 namespace MyNUnit;
 
 using System.Collections.Concurrent;
 using System.Reflection;
+using Core;
 
 /// <summary>
 /// The type for running test methods.
@@ -25,7 +26,7 @@ public class MyNUnitClass
     /// or directory is not found.</exception>
     public async Task<string> RunAllTheTestsAlongThisPath(string path)
     {
-        if (!File.Exists(path))
+        if (File.Exists(path))
         {
             if (Path.GetExtension(path) != ".dll" && Path.GetExtension(path) != ".exe")
             {
@@ -34,7 +35,7 @@ public class MyNUnitClass
 
             return await this.RunAllTheTestsInTheFile(path);
         }
-        else if (!Directory.Exists(path))
+        else if (Directory.Exists(path))
         {
             return await this.RunAllTheTestsInTheDirectory(path);
         }
@@ -133,8 +134,8 @@ public class MyNUnitClass
                 var testAttribute = testMethod.GetCustomAttribute<TestAttribute>();
                 if (testAttribute?.Ignore != null)
                 {
-                    this.safeBag.Add($"Test Ignored: {testMethod.Name}\n" +
-                                     $"    Reason: {testAttribute.Ignore}\n \n");
+                    this.safeBag.Add($"\nTest Ignored: {testMethod.Name}\n" +
+                                     $"    Reason: {testAttribute.Ignore}\n");
 
                     return ValueTask.CompletedTask;
                 }
@@ -148,29 +149,38 @@ public class MyNUnitClass
                     }
                 }
 
+                var stopwatch = Stopwatch.StartNew();
                 try
                 {
                     testMethod.Invoke(instance, null);
-                    this.safeBag.Add($"Test Passed: {testMethod.Name}\n \n");
+                    stopwatch.Stop();
+                    this.safeBag.Add($"\nTest Passed: {testMethod.Name}\n" +
+                                     $"    Time: {stopwatch.ElapsedMilliseconds} ms\n");
                 }
                 catch (TargetInvocationException ex) when (ex.InnerException is AssertFailedException)
                 {
-                    this.safeBag.Add($"Test Failed: {testMethod.Name}\n" + ex.InnerException.Message + "\n");
+                    stopwatch.Stop();
+                    this.safeBag.Add($"\nTest Failed: {testMethod.Name}\n" +
+                                     $"    Time: {stopwatch.ElapsedMilliseconds} ms\n"
+                                     + ex.InnerException.Message + "\n");
                 }
                 catch (TargetInvocationException ex)
                 {
+                    stopwatch.Stop();
                     if (testAttribute?.Expected != null &&
                         ex.InnerException != null &&
                         ex.InnerException.GetType() == testAttribute.Expected)
                     {
-                        this.safeBag.Add($"Test Passed: {testMethod.Name}\n \n");
+                        this.safeBag.Add($"\nTest Passed: {testMethod.Name}\n" +
+                                         $"    Time: {stopwatch.ElapsedMilliseconds} ms\n");
                     }
                     else
                     {
                         this.safeBag.Add(
-                            $"Test Failed: {testMethod.Name}\n" +
+                            $"\nTest Failed: {testMethod.Name}\n" +
+                            $"    Time: {stopwatch.ElapsedMilliseconds} ms\n" +
                             $"    Unexpected exception: {ex.InnerException?.GetType().Name}\n" +
-                            $"    Message: {ex.InnerException?.Message}\n \n");
+                            $"    Message: {ex.InnerException?.Message}\n");
                     }
                 }
 

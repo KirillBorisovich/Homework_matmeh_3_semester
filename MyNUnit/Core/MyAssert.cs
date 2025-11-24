@@ -21,8 +21,8 @@ public static class MyAssert
     {
         if (!Equals(expected, actual))
         {
-            throw new AssertFailedException($"Expected: {expected}\n " +
-                                            $"But was: {actual}\n");
+            throw new AssertFailedException($"    Expected: {expected}\n " +
+                                            $"    But was: {actual}");
         }
     }
 
@@ -37,7 +37,7 @@ public static class MyAssert
     {
         if (!value)
         {
-            throw new AssertFailedException("Value is not true\n");
+            throw new AssertFailedException("    Value is not true");
         }
     }
 }

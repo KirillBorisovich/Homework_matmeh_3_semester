@@ -22,3 +22,8 @@ catch (Exception ex)
     Console.WriteLine(ex.Message + "\n");
     return;
 }
+
+/*using MyNUnit;
+
+var qwe = await new MyNUnitClass().RunAllTheTestsAlongThisPath(
+    "/Users/kirillbenga/Образование/Homework_matmeh_3_semester/MyNUnit/TestsAssemblies");*/
