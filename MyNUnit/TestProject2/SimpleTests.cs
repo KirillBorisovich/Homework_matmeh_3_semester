@@ -1,12 +1,13 @@
 ﻿using Core;
 
-namespace TestProject1;
+namespace TestProject2;
 
 public class SimpleTests
 {
     [AfterClass]
     public static void FinishOnce()
     {
+        throw new InvalidOperationException();
     }
 
     [Before]

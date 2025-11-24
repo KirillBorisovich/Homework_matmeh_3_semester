@@ -22,7 +22,7 @@ public static class MyAssert
         if (!Equals(expected, actual))
         {
             throw new AssertFailedException($"    Expected: {expected}\n " +
-                                            $"    But was: {actual}");
+                                            $"   But was: {actual}");
         }
     }
 

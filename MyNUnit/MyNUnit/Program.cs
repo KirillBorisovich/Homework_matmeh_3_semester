@@ -15,15 +15,9 @@ var inputPath = args[0];
 try
 {
     var result = await new MyNUnitClass().RunAllTheTestsAlongThisPath(inputPath);
-    Console.WriteLine(result);
+    Console.WriteLine(string.Concat(result));
 }
 catch (Exception ex)
 {
     Console.WriteLine(ex.Message + "\n");
-    return;
 }
-
-/*using MyNUnit;
-
-var qwe = await new MyNUnitClass().RunAllTheTestsAlongThisPath(
-    "/Users/kirillbenga/Образование/Homework_matmeh_3_semester/MyNUnit/TestsAssemblies");*/

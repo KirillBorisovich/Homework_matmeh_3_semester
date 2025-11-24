@@ -2,11 +2,10 @@
 // Copyright (c) Bengya Kirill under MIT License.
 // </copyright>
 
-using System.Diagnostics;
-
 namespace MyNUnit;
 
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Reflection;
 using Core;
 
@@ -24,7 +23,7 @@ public class MyNUnitClass
     /// <returns>The result of the test methods execution.</returns>
     /// <exception cref="ArgumentException">The exception is that the file
     /// or directory is not found.</exception>
-    public async Task<string> RunAllTheTestsAlongThisPath(string path)
+    public async Task<ConcurrentBag<string>> RunAllTheTestsAlongThisPath(string path)
     {
         if (File.Exists(path))
         {
@@ -76,40 +75,48 @@ public class MyNUnitClass
         return methods;
     }
 
-    private async Task<string> RunAllTheTestsInTheDirectory(string path)
+    private async Task<ConcurrentBag<string>> RunAllTheTestsInTheDirectory(string path)
     {
         var assemblyFiles = Directory.EnumerateFiles(path, "*.dll")
-            .Concat(Directory.EnumerateFiles(path, "*.exe"));
+            .Concat(Directory.EnumerateFiles(path, "*.exe"))
+            .ToArray();
+
+        if (assemblyFiles.Length == 0)
+        {
+            throw new ArgumentException("The directory does not contain any assemblies.");
+        }
 
         var tasks = assemblyFiles.Select(file =>
         {
-            var assembly = Assembly.LoadFile(file);
+            var fullPath = Path.GetFullPath(file);
+            var assembly = Assembly.LoadFrom(fullPath);
             return this.RunAllTheTestsInTheFile(assembly);
         });
 
         var results = await Task.WhenAll(tasks);
 
-        return string.Concat(results);
+        return new ConcurrentBag<string>(this.safeBag);
     }
 
-    private async Task<string> RunAllTheTestsInTheFile(string path)
+    private async Task<ConcurrentBag<string>> RunAllTheTestsInTheFile(string path)
     {
         var assembly = Assembly.LoadFile(path);
         return await this.RunAllTheTestsInTheFile(assembly);
     }
 
-    private async Task<string> RunAllTheTestsInTheFile(Assembly assembly)
+    private async Task<ConcurrentBag<string>> RunAllTheTestsInTheFile(Assembly assembly)
     {
         await Parallel.ForEachAsync(
             assembly.ExportedTypes,
             async (type, _) => await this.RunAllTheTestsInTheClass(type));
 
-        return string.Concat(this.safeBag);
+        return new ConcurrentBag<string>(this.safeBag);
     }
 
     private async ValueTask RunAllTheTestsInTheClass(Type type)
     {
         ArgumentNullException.ThrowIfNull(type);
+        ConcurrentBag<string> temporaryBag = [];
 
         var methods =
             FindAllTheMethodsWithTheNecessaryAttributesForTestingInTheClass(type);
@@ -119,87 +126,109 @@ public class MyNUnitClass
             return;
         }
 
-        if (methods.TryGetValue(nameof(BeforeClassAttribute), out var beforeClassMethods))
+        try
         {
-            foreach (var beforeClassMethod in beforeClassMethods)
-            {
-                beforeClassMethod.Invoke(null, null);
-            }
-        }
+            this.RunAuxiliaryMethods(methods, null, nameof(BeforeClassAttribute));
 
-        await Parallel.ForEachAsync(
-            methods[nameof(TestAttribute)],
-            (testMethod, _) =>
-            {
-                var testAttribute = testMethod.GetCustomAttribute<TestAttribute>();
-                if (testAttribute?.Ignore != null)
+            await Parallel.ForEachAsync(
+                methods[nameof(TestAttribute)],
+                (testMethod, _) =>
                 {
-                    this.safeBag.Add($"\nTest Ignored: {testMethod.Name}\n" +
-                                     $"    Reason: {testAttribute.Ignore}\n");
-
-                    return ValueTask.CompletedTask;
-                }
-
-                var instance = Activator.CreateInstance(type);
-                if (methods.TryGetValue(nameof(BeforeAttribute), out var beforeMethods))
-                {
-                    foreach (var beforeMethod in beforeMethods)
+                    var testAttribute = testMethod.GetCustomAttribute<TestAttribute>();
+                    if (testAttribute?.Ignore != null)
                     {
-                        beforeMethod.Invoke(instance, null);
+                        temporaryBag.Add($"\nTest Ignored: {testMethod.Name}\n" +
+                                         $"    Reason: {testAttribute.Ignore}\n");
+
+                        return ValueTask.CompletedTask;
                     }
-                }
 
-                var stopwatch = Stopwatch.StartNew();
-                try
-                {
-                    testMethod.Invoke(instance, null);
-                    stopwatch.Stop();
-                    this.safeBag.Add($"\nTest Passed: {testMethod.Name}\n" +
-                                     $"    Time: {stopwatch.ElapsedMilliseconds} ms\n");
-                }
-                catch (TargetInvocationException ex) when (ex.InnerException is AssertFailedException)
-                {
-                    stopwatch.Stop();
-                    this.safeBag.Add($"\nTest Failed: {testMethod.Name}\n" +
-                                     $"    Time: {stopwatch.ElapsedMilliseconds} ms\n"
-                                     + ex.InnerException.Message + "\n");
-                }
-                catch (TargetInvocationException ex)
-                {
-                    stopwatch.Stop();
-                    if (testAttribute?.Expected != null &&
-                        ex.InnerException != null &&
-                        ex.InnerException.GetType() == testAttribute.Expected)
+                    var instance = Activator.CreateInstance(type);
+                    this.RunAuxiliaryMethods(methods, instance, nameof(BeforeAttribute));
+
+                    var stopwatch = Stopwatch.StartNew();
+                    try
                     {
-                        this.safeBag.Add($"\nTest Passed: {testMethod.Name}\n" +
+                        testMethod.Invoke(instance, null);
+                        stopwatch.Stop();
+                        temporaryBag.Add($"\nTest Passed: {testMethod.Name}\n" +
                                          $"    Time: {stopwatch.ElapsedMilliseconds} ms\n");
                     }
-                    else
+                    catch (TargetInvocationException ex) when (ex.InnerException is AssertFailedException)
                     {
-                        this.safeBag.Add(
-                            $"\nTest Failed: {testMethod.Name}\n" +
-                            $"    Time: {stopwatch.ElapsedMilliseconds} ms\n" +
-                            $"    Unexpected exception: {ex.InnerException?.GetType().Name}\n" +
-                            $"    Message: {ex.InnerException?.Message}\n");
+                        stopwatch.Stop();
+                        temporaryBag.Add($"\nTest Failed: {testMethod.Name}\n" +
+                                         $"    Time: {stopwatch.ElapsedMilliseconds} ms\n"
+                                         + ex.InnerException.Message + "\n");
                     }
-                }
-
-                if (methods.TryGetValue(nameof(AfterAttribute), out var afterMethods))
-                {
-                    foreach (var afterMethod in afterMethods)
+                    catch (TargetInvocationException ex)
                     {
-                        afterMethod.Invoke(instance, null);
+                        stopwatch.Stop();
+                        if (testAttribute?.Expected != null &&
+                            ex.InnerException != null &&
+                            ex.InnerException.GetType() == testAttribute.Expected)
+                        {
+                            temporaryBag.Add($"\nTest Passed: {testMethod.Name}\n" +
+                                             $"    Time: {stopwatch.ElapsedMilliseconds} ms\n");
+                        }
+                        else
+                        {
+                            temporaryBag.Add(
+                                $"\nTest Failed: {testMethod.Name}\n" +
+                                $"    Time: {stopwatch.ElapsedMilliseconds} ms\n" +
+                                $"    Unexpected exception: {ex.InnerException?.GetType().Name}\n" +
+                                $"    Message: {ex.InnerException?.Message}\n");
+                        }
                     }
-                }
 
-                return ValueTask.CompletedTask;
-            });
+                    this.RunAuxiliaryMethods(methods, instance, nameof(AfterAttribute));
 
-        if (methods.TryGetValue(nameof(AfterClassAttribute), out var afterClassMethods))
-        {
-            foreach (var afterClassMethod in afterClassMethods)
+                    return ValueTask.CompletedTask;
+                });
+
+            this.RunAuxiliaryMethods(methods, null, nameof(AfterClassAttribute));
+
+            foreach (var str in temporaryBag)
             {
-                afterClassMethod.Invoke(null, null);
+                this.safeBag.Add(str);
+            }
+        }
+        catch (TheAuxiliaryMethodDroppedTheException)
+        {
+        }
+        catch (AggregateException ex)
+            when (ex.InnerException is TheAuxiliaryMethodDroppedTheException)
+        {
+        }
+        catch (Exception ex)
+        {
+            this.safeBag.Add("\n" + ex.Message + "\n");
+        }
+    }
+
+    private void RunAuxiliaryMethods(
+        Dictionary<string, List<MethodInfo>> methods,
+        object? instance,
+        string attributeName)
+    {
+        if (!methods.TryGetValue(attributeName, out var attributeMethods))
+        {
+            return;
+        }
+
+        foreach (var attributeMethod in attributeMethods)
+        {
+            try
+            {
+                attributeMethod.Invoke(instance, null);
+            }
+            catch (TargetInvocationException ex)
+            {
+                this.safeBag.Add(
+                    $"\nAn exception is raised in: {attributeMethod.Name}\n" +
+                    $"    Exception: {ex.InnerException?.GetType().Name}\n" +
+                    $"    Message: {ex.InnerException?.Message}\n");
+                throw new TheAuxiliaryMethodDroppedTheException();
             }
         }
     }
