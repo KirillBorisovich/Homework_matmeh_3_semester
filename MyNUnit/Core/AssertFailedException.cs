@@ -2,7 +2,7 @@
 // Copyright (c) Bengya Kirill under MIT License.
 // </copyright>
 
-namespace MyNUnit;
+namespace Attributes;
 
 /// <summary>
 /// Exceptions about a failed test.

@@ -1,20 +1,22 @@
-// <copyright file="Assert.cs" company="Bengya Kirill">
+// <copyright file="MyAssert.cs" company="Bengya Kirill">
 // Copyright (c) Bengya Kirill under MIT License.
 // </copyright>
 
-namespace MyNUnit;
+namespace Attributes;
 
 /// <summary>
 /// Provides a set of static methods for checking conditions in MyNUnit.
 /// </summary>
-public static class Assert
+public static class MyAssert
 {
     /// <summary>
     /// Check that the two specified objects are equal.
     /// </summary>
     /// <param name="expected">The expected value.</param>
     /// <param name="actual">The actual value.</param>
-    /// <exception cref="AssertFailedException">Thrown when <paramref name="expected"/> and <paramref name="actual"/> are not equal.</exception>
+    /// <exception>Thrown when
+    ///     <cref>AssertFailedException</cref>
+    ///     <paramref name="expected"/> and <paramref name="actual"/> are not equal.</exception>
     public static void AreEqual(object expected, object actual)
     {
         if (!Equals(expected, actual))
@@ -28,7 +30,9 @@ public static class Assert
     /// Check whether the specified condition is met.
     /// </summary>
     /// <param name="value">The condition to verify.</param>
-    /// <exception cref="AssertFailedException">Thrown when <paramref name="value"/> is false.</exception>
+    /// <exception>Thrown when
+    ///     <cref>AssertFailedException</cref>
+    ///     <paramref name="value"/> is false.</exception>
     public static void IsTrue(bool value)
     {
         if (!value)
