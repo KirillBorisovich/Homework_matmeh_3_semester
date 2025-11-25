@@ -86,14 +86,12 @@ public class MyNUnitClass
             throw new ArgumentException("The directory does not contain any assemblies.");
         }
 
-        var tasks = assemblyFiles.Select(file =>
+        await Parallel.ForEachAsync(assemblyFiles, async (file, _) =>
         {
             var fullPath = Path.GetFullPath(file);
             var assembly = Assembly.LoadFrom(fullPath);
-            return this.RunAllTheTestsInTheFile(assembly);
+            await this.RunAllTheTestsInTheFile(assembly);
         });
-
-        var results = await Task.WhenAll(tasks);
 
         return new ConcurrentBag<string>(this.safeBag);
     }
