@@ -14,7 +14,7 @@ public class MyMultiThreadLazy<T>(Func<T>? supplier) : ILazy<T>
     private readonly Lock lockObject = new();
     private Func<T>? supplier = supplier ?? throw new ArgumentNullException(nameof(supplier));
     private T? result;
-    private bool isCalculated;
+    private volatile bool isCalculated;
 
     /// <summary>
     /// Get the calculation result.

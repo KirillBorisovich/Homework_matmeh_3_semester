@@ -10,6 +10,7 @@ public class MultiThreadedLazyTests
     [CancelAfter(2000)]
     public void MultiThreadedTest()
     {
+        ManualResetEvent resetEvent = new(false);
         const int threadsCount = 10;
         var counter = 0;
         var lazy = new MyMultiThreadLazy<int>(() =>
@@ -21,14 +22,20 @@ public class MultiThreadedLazyTests
         var results = new int[threadsCount];
         for (var i = 0; i < 10; i++)
         {
-            var i1 = i;
-            threads[i] = new Thread(() => results[i1] = lazy.Get());
+            var local = i;
+            threads[i] = new Thread(() =>
+            {
+                resetEvent.WaitOne();
+                results[local] = lazy.Get();
+            });
         }
 
         foreach (var thread in threads)
         {
             thread.Start();
         }
+
+        resetEvent.Set();
 
         foreach (var thread in threads)
         {
