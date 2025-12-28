@@ -15,6 +15,15 @@
 
     <ItemGroup>
       <Folder Include="Pages\Shared\" />
+      <Folder Include="uploadedFiles\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <AdditionalFiles Include="stylecop.json">
+        <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </AdditionalFiles>
     </ItemGroup>
 
 </Project>

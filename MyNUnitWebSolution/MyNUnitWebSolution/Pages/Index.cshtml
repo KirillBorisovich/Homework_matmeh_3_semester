@@ -1,0 +1,78 @@
+@page
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@model MyNUnitWebSolution.Pages.Index
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Uploading assemblies</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="~/js/uploadingFiles.js" asp-append-version="true"></script>
+</head>
+<body>
+
+<div class="container mt-5">
+    <div class="card p-4">
+        <h4 class="mb-3">Uploading assemblies for testing</h4>
+
+        <div id="messageArea">
+            @if (!string.IsNullOrEmpty(Model.Message))
+            {
+                <div class="alert alert-info" role="alert">
+                    @Model.Message
+                </div>
+            }
+        </div>
+
+        <form method="post" enctype="multipart/form-data" onsubmit="uploadFile(event)">
+            <div class="mb-3">
+                <label class="form-label">Select an assembly</label>
+                <input
+                    class="form-control"
+                    type="file"
+                    asp-for="UploadFile"
+                    accept=".dll"
+                />
+                <input type="hidden" id="__RequestVerificationToken"
+                       value="@Antiforgery.GetAndStoreTokens(HttpContext).RequestToken" />
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">
+                Upload a file
+            </button>
+        </form>
+    </div>
+
+    <div class="card mt-4">
+        <div class="card-header">
+            Uploaded files
+        </div>
+
+        <ul class="list-group list-group-flush" id="filesList">
+            @if (Model.filesNames is { Count: > 0 })
+            {
+                foreach (var name in Model.filesNames)
+                {
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span class="text-truncate" style="max-width: 80%;">
+                            @name
+                        </span>
+                        <button
+                            type="button"
+                            class="btn btn-sm btn-danger"
+                            onclick="deleteFile('@name', this)">
+                            Delete
+                        </button>
+                    </li>
+                }
+            }
+        </ul>
+    </div>
+</div>
+</body>
+</html>
