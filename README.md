@@ -8,3 +8,5 @@
 ### [Задание 1: Параллельное умножение матриц](https://github.com/KirillBorisovich/Homework_matmeh_3_semester/tree/ParallelMatrixMultiplication/ParallelMatrixMultiplication)
 ### [Задание 2: Lazy](https://github.com/KirillBorisovich/Homework_matmeh_3_semester/tree/Lazy/Lazy)
 ### [Задание 3: MyThreadPool](https://github.com/KirillBorisovich/Homework_matmeh_3_semester/tree/MyThreadPool/ThreadPool)
+### [Задание 4: SimpleFTP](https://github.com/KirillBorisovich/Homework_matmeh_3_semester/tree/SimpleFTP/SimpleFTP)
+### [Задание 5: MyNUnit](https://github.com/KirillBorisovich/Homework_matmeh_3_semester/tree/MyNUnit/MyNUnit)
