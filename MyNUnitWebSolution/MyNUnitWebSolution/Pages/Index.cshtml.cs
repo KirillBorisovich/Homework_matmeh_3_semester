@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+
 namespace MyNUnitWebSolution.Pages;
 
 using System.Security.Cryptography;
@@ -57,16 +59,33 @@ public class Index : PageModel
 
     public async Task<IActionResult> OnPostRunTheTests()
     {
+        var results = new ConcurrentDictionary<string, ConcurrentBag<string>>();
+
         try
         {
-            var myNUnit = new MyNUnit();
-            var result = await myNUnit.RunAllTheTestsAlongThisPath(
-                this.ThePathToTheUploadedFilesDirectory);
+            await Parallel.ForEachAsync(
+                Directory.GetFiles(this.ThePathToTheUploadedFilesDirectory),
+                async (thePathToTheAssembly, _) =>
+                {
+                    var myNUnit = new MyNUnit();
+                    var assemblyName = Path.GetFileName(thePathToTheAssembly);
+
+                    var assemblyResults =
+                        await myNUnit.RunAllTheTestsAlongThisPath(thePathToTheAssembly);
+
+                    results[assemblyName] = assemblyResults;
+                });
+
+            var dto = results.Select(kvp => new
+            {
+                assemblyName = kvp.Key,
+                output = kvp.Value.ToArray(),
+            });
 
             return new JsonResult(new
             {
                 success = true,
-                data = result.ToArray(),
+                data = dto,
             });
         }
         catch (Exception ex)

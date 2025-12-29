@@ -1,30 +1,51 @@
-function addTestsResults(result) {
+function addTestsResults(data) {
     const container = document.getElementById('testResults');
     container.innerHTML = '';
 
-    if (!result) {
+    if (!Array.isArray(data) || data.length === 0) {
         container.innerHTML = '<span class="text-muted">No test results</span>';
         return;
     }
 
-    let blocks;
-    if (Array.isArray(result)) {
-        blocks = result;
-    } else if (Array.isArray(result.results)) {
-        blocks = result.results;
-    } else if (Array.isArray(result.output)) {
-        blocks = result.output;
-    } else {
-        console.warn('Unexpected test result format:', result);
-        container.innerHTML = '<span class="text-muted">Unexpected test result format</span>';
-        return;
-    }
+    // 1. Сортируем сборки по имени
+    const sortedAssemblies = [...data].sort((a, b) => {
+        const nameA = (a.assemblyName || '').toLowerCase();
+        const nameB = (b.assemblyName || '').toLowerCase();
+        return nameA.localeCompare(nameB);
+    });
 
-    if (blocks.length === 0) {
-        container.innerHTML = '<span class="text-muted">No test results</span>';
-        return;
-    }
+    // 2. Рендерим каждую сборку
+    for (const asm of sortedAssemblies) {
+        // массив строк с результатами по сборке
+        const blocks = asm.output || asm.results || asm.value;
+        if (!blocks || blocks.length === 0) {
+            continue;
+        }
 
+        const card = document.createElement('div');
+        card.className = 'card mb-3';
+
+        const header = document.createElement('div');
+        header.className = 'card-header fw-bold';
+        header.textContent = asm.assemblyName;
+        card.appendChild(header);
+
+        const body = document.createElement('div');
+        body.className = 'card-body p-0';
+
+        const list = document.createElement('ul');
+        list.className = 'list-group list-group-flush';
+
+        // внутри сборки сортируем тесты, как раньше:
+        fillListWithBlocks(blocks, list);
+
+        body.appendChild(list);
+        card.appendChild(body);
+        container.appendChild(card);
+    }
+}
+
+function fillListWithBlocks(blocks, list) {
     const failedOrError = [];
     const passed = [];
     const ignored = [];
@@ -37,45 +58,34 @@ function addTestsResults(result) {
 
         if (text.startsWith('Test Failed:') ||
             text.startsWith('An exception is raised in:')) {
-            failedOrError.push(block);
+            failedOrError.push(text);
         } else if (text.startsWith('Test Passed:')) {
-            passed.push(block);
+            passed.push(text);
         } else if (text.startsWith('Test Ignored:')) {
-            ignored.push(block);
+            ignored.push(text);
         } else {
-            other.push(block);
+            other.push(text);
         }
     }
 
-    const orderedBlocks = [
+    const ordered = [
         ...failedOrError,
         ...passed,
         ...ignored,
         ...other
     ];
 
-    if (orderedBlocks.length === 0) {
-        container.innerHTML = '<span class="text-muted">No test results</span>';
-        return;
-    }
-
-    const list = document.createElement('ul');
-    list.className = 'list-group';
-
-    for (const block of orderedBlocks) {
+    for (const text of ordered) {
         const li = document.createElement('li');
         li.className = 'list-group-item';
 
-        const text = block.trimStart();
-
         if (text.startsWith('Test Passed:')) {
             li.classList.add('list-group-item-success');
-        } else if (text.startsWith('Test Failed:')) {
+        } else if (text.startsWith('Test Failed:') ||
+            text.startsWith('An exception is raised in:')) {
             li.classList.add('list-group-item-danger');
         } else if (text.startsWith('Test Ignored:')) {
             li.classList.add('list-group-item-warning');
-        } else if (text.startsWith('An exception is raised in:')) {
-            li.classList.add('list-group-item-danger');
         }
 
         const pre = document.createElement('pre');
@@ -85,8 +95,6 @@ function addTestsResults(result) {
         li.appendChild(pre);
         list.appendChild(li);
     }
-
-    container.appendChild(list);
 }
 
 async function runTheTests() {
