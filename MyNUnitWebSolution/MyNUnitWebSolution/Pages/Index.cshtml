@@ -18,6 +18,11 @@
 <body>
 
 <div class="container mt-5">
+    <div class="d-flex justify-content-end mb-3">
+        <a asp-page="/History" class="btn btn-outline-secondary btn-sm">
+            История запусков
+        </a>
+    </div>
     <div class="card p-4">
         <h4 class="mb-3">Uploading assemblies for testing</h4>
 
@@ -37,10 +42,9 @@
                     class="form-control"
                     type="file"
                     asp-for="UploadFile"
-                    accept=".dll"
-                />
+                    accept=".dll"/>
                 <input type="hidden" id="__RequestVerificationToken"
-                       value="@Antiforgery.GetAndStoreTokens(HttpContext).RequestToken" />
+                       value="@Antiforgery.GetAndStoreTokens(HttpContext).RequestToken"/>
             </div>
 
             <button type="submit" class="btn btn-primary w-100">

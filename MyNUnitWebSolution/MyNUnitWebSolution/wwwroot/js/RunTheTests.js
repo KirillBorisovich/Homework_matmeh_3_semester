@@ -7,16 +7,13 @@ function addTestsResults(data) {
         return;
     }
 
-    // 1. Сортируем сборки по имени
     const sortedAssemblies = [...data].sort((a, b) => {
         const nameA = (a.assemblyName || '').toLowerCase();
         const nameB = (b.assemblyName || '').toLowerCase();
         return nameA.localeCompare(nameB);
     });
 
-    // 2. Рендерим каждую сборку
     for (const asm of sortedAssemblies) {
-        // массив строк с результатами по сборке
         const blocks = asm.output || asm.results || asm.value;
         if (!blocks || blocks.length === 0) {
             continue;
@@ -36,7 +33,6 @@ function addTestsResults(data) {
         const list = document.createElement('ul');
         list.className = 'list-group list-group-flush';
 
-        // внутри сборки сортируем тесты, как раньше:
         fillListWithBlocks(blocks, list);
 
         body.appendChild(list);

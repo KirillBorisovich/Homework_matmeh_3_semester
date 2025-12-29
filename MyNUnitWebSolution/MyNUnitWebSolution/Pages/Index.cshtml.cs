@@ -1,20 +1,22 @@
-using System.Collections.Concurrent;
-
 namespace MyNUnitWebSolution.Pages;
 
+using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using MyNUnitSolution;
+using MyNUnitWebSolution.Data;
 
 public class Index : PageModel
 {
     private readonly IWebHostEnvironment env;
+    private readonly TestHistoryContext db;
 
-    public Index(IWebHostEnvironment env)
+    public Index(IWebHostEnvironment env, TestHistoryContext db)
     {
         this.env = env;
+        this.db = db;
         this.ThePathToTheUploadedFilesDirectory = Path.Combine(this.env.ContentRootPath, "uploadedFiles");
 
         Directory.CreateDirectory(this.ThePathToTheUploadedFilesDirectory);
@@ -59,33 +61,74 @@ public class Index : PageModel
 
     public async Task<IActionResult> OnPostRunTheTests()
     {
-        var results = new ConcurrentDictionary<string, ConcurrentBag<string>>();
-
         try
         {
+            var dllPaths = Directory.GetFiles(this.ThePathToTheUploadedFilesDirectory, "*.dll");
+
+            if (dllPaths.Length == 0)
+            {
+                return new JsonResult(new
+                {
+                    success = false,
+                    error = "No assemblies to test",
+                });
+            }
+
+            var allResults = new ConcurrentDictionary<string, ConcurrentBag<string>>();
+
             await Parallel.ForEachAsync(
-                Directory.GetFiles(this.ThePathToTheUploadedFilesDirectory),
-                async (thePathToTheAssembly, _) =>
+                dllPaths,
+                async (assemblyPath, _) =>
                 {
                     var myNUnit = new MyNUnit();
-                    var assemblyName = Path.GetFileName(thePathToTheAssembly);
+                    var assemblyName = Path.GetFileName(assemblyPath);
 
-                    var assemblyResults =
-                        await myNUnit.RunAllTheTestsAlongThisPath(thePathToTheAssembly);
-
-                    results[assemblyName] = assemblyResults;
+                    var output = await myNUnit.RunAllTheTestsAlongThisPath(assemblyPath);
+                    allResults[assemblyName] = output;
                 });
 
-            var dto = results.Select(kvp => new
+            var run = new TestRun
             {
-                assemblyName = kvp.Key,
-                output = kvp.Value.ToArray(),
-            });
+                StartedAt = DateTime.UtcNow,
+                FinishedAt = DateTime.UtcNow,
+            };
+
+            foreach (var (assemblyName, linesBag) in allResults.OrderBy(k => k.Key))
+            {
+                var asmRun = new AssemblyRun
+                {
+                    AssemblyName = assemblyName,
+                };
+
+                var order = 0;
+                foreach (var line in linesBag)
+                {
+                    asmRun.Lines.Add(new TestOutputLine
+                    {
+                        Order = order++,
+                        Text = line,
+                    });
+                }
+
+                run.Assemblies.Add(asmRun);
+            }
+
+            this.db.TestRuns.Add(run);
+            await this.db.SaveChangesAsync();
+
+            var uiData = allResults
+                .OrderBy(k => k.Key)
+                .Select(kvp => new
+                {
+                    assemblyName = kvp.Key,
+                    output = kvp.Value.ToArray(),
+                })
+                .ToArray();
 
             return new JsonResult(new
             {
                 success = true,
-                data = dto,
+                data = uiData,
             });
         }
         catch (Exception ex)
@@ -97,7 +140,6 @@ public class Index : PageModel
             });
         }
     }
-
 
     public IActionResult OnPostDeleteFile(string fileName)
     {

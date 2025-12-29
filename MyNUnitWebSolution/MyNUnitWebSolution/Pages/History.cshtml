@@ -1,0 +1,61 @@
+@page
+@model MyNUnitWebSolution.Pages.HistoryModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <title>История запусков тестов</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <script src="~/js/History.js" asp-append-version="true"></script>
+</head>
+<body class="p-4">
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">История запусков тестов</h3>
+
+    <a asp-page="/Index" class="btn btn-outline-secondary btn-sm">
+        К загрузке сборок
+    </a>
+</div>
+
+<div class="row mt-3">
+    <div class="col-md-5">
+        <h5>Сборки</h5>
+        <table class="table table-sm table-hover">
+            <thead>
+            <tr>
+                <th>Сборка</th>
+                <th>Запусков</th>
+                <th class="text-success">Passed</th>
+                <th class="text-danger">Failed</th>
+                <th class="text-warning">Ignored</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var a in Model.Assemblies)
+            {
+                <tr onclick="loadAssemblyHistory('@a.AssemblyName')" style="cursor:pointer">
+                    <td>@a.AssemblyName</td>
+                    <td>@a.RunsCount</td>
+                    <td class="text-success">@a.TotalPassed</td>
+                    <td class="text-danger">@a.TotalFailed</td>
+                    <td class="text-warning">@a.TotalIgnored</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="col-md-7">
+        <h5>История тестов по сборке</h5>
+        <div id="assemblyHistory">
+            <span class="text-muted">Выберите сборку слева.</span>
+        </div>
+    </div>
+</div>
+</body>
+</html>
