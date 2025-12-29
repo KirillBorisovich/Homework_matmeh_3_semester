@@ -13,6 +13,7 @@
     <title>Uploading assemblies</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="~/js/uploadingFiles.js" asp-append-version="true"></script>
+    <script src="~/js/RunTheTests.js" asp-append-version="true"></script>
 </head>
 <body>
 
@@ -73,6 +74,12 @@
             }
         </ul>
     </div>
+    <div class="card mt-3">
+        <button type="button" class="btn btn-outline-primary" onclick="runTheTests()">
+            Start testing
+        </button>
+    </div>
+    <div id="testResults" class="mt-3"></div>
 </div>
 </body>
 </html>

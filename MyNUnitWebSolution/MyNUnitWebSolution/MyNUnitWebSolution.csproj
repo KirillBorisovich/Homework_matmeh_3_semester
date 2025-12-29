@@ -26,4 +26,8 @@
       </AdditionalFiles>
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\MyNUnitSolution\MyNUnitSolution.csproj" />
+    </ItemGroup>
+
 </Project>

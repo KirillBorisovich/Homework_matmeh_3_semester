@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using MyNUnitSolution;
 
 public class Index : PageModel
 {
@@ -53,6 +54,31 @@ public class Index : PageModel
             fileName = storedFileName,
         });
     }
+
+    public async Task<IActionResult> OnPostRunTheTests()
+    {
+        try
+        {
+            var myNUnit = new MyNUnit();
+            var result = await myNUnit.RunAllTheTestsAlongThisPath(
+                this.ThePathToTheUploadedFilesDirectory);
+
+            return new JsonResult(new
+            {
+                success = true,
+                data = result.ToArray(),
+            });
+        }
+        catch (Exception ex)
+        {
+            return this.BadRequest(new
+            {
+                success = false,
+                error = ex.Message,
+            });
+        }
+    }
+
 
     public IActionResult OnPostDeleteFile(string fileName)
     {
