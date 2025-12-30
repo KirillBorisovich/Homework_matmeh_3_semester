@@ -1,3 +1,7 @@
+// <copyright file="Index.cshtml.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
 namespace MyNUnitWebSolution.Pages;
 
 using System.Collections.Concurrent;
@@ -8,11 +12,21 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using MyNUnitSolution;
 using MyNUnitWebSolution.Data;
 
+/// <summary>
+/// Page model for the main MyNUnit web UI page.
+/// </summary>
 public class Index : PageModel
 {
     private readonly IWebHostEnvironment env;
     private readonly TestHistoryContext db;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Index"/> class.
+    /// </summary>
+    /// <param name="env">The web hosting environment that provides access to the content root path
+    /// and other environment-specific information.</param>
+    /// <param name="db">The EF Core context used to
+    /// store and read the test execution history.</param>
     public Index(IWebHostEnvironment env, TestHistoryContext db)
     {
         this.env = env;
@@ -21,35 +35,51 @@ public class Index : PageModel
 
         Directory.CreateDirectory(this.ThePathToTheUploadedFilesDirectory);
 
-        this.filesNames = Directory
+        this.FilesNames = Directory
             .GetFiles(this.ThePathToTheUploadedFilesDirectory)
             .Select(Path.GetFileName)
             .ToList();
     }
 
+    /// <summary>
+    /// Gets the path to the folder with uploaded builds.
+    /// </summary>
     public string ThePathToTheUploadedFilesDirectory { get; private set; }
 
+    /// <summary>
+    /// Gets or sets uploaded file.
+    /// </summary>
     [BindProperty]
-    public IFormFile UploadFile { get; set; }
+    public IFormFile? UploadFile { get; set; }
 
-    public List<string?> filesNames = [];
+    /// <summary>
+    /// Gets names of uploaded files.
+    /// </summary>
+    public List<string?> FilesNames { get; private set; }
 
-    public string Message { get; private set; }
+    /// <summary>
+    /// Gets message.
+    /// </summary>
+    public string? Message { get; private set; }
 
-    public void OnGet()
-    {
-    }
-
+    /// <summary>
+    /// A method that responds to a request with a type of post.
+    /// </summary>
+    /// <returns>An existing page.</returns>
     public async Task<IActionResult> OnPost()
     {
-        var (success, message, _) = await HandleUploadAsync();
+        var (_, message, _) = await this.HandleUploadAsync();
         this.Message = message;
         return this.Page();
     }
 
+    /// <summary>
+    /// The method for uploading files.
+    /// </summary>
+    /// <returns>Json.</returns>
     public async Task<IActionResult> OnPostUploadFile()
     {
-        var (success, message, storedFileName) = await HandleUploadAsync();
+        var (success, message, storedFileName) = await this.HandleUploadAsync();
 
         return new JsonResult(new
         {
@@ -59,6 +89,10 @@ public class Index : PageModel
         });
     }
 
+    /// <summary>
+    /// A method for running tests from uploaded assemblies.
+    /// </summary>
+    /// <returns>Json.</returns>
     public async Task<IActionResult> OnPostRunTheTests()
     {
         try
@@ -141,6 +175,11 @@ public class Index : PageModel
         }
     }
 
+    /// <summary>
+    /// A method for deleting uploaded files.
+    /// </summary>
+    /// <param name="fileName">The name of the file being deleted.</param>
+    /// <returns>Json.</returns>
     public IActionResult OnPostDeleteFile(string fileName)
     {
         if (string.IsNullOrWhiteSpace(fileName))
@@ -159,7 +198,7 @@ public class Index : PageModel
 
         System.IO.File.Delete(filePath);
 
-        this.filesNames.Remove(fileName);
+        this.FilesNames.Remove(fileName);
 
         return new JsonResult(new { success = true });
     }
@@ -172,7 +211,7 @@ public class Index : PageModel
 
     private async Task<(bool Success, string Message, string? StoredFileName)> HandleUploadAsync()
     {
-        if (this.UploadFile is null || this.UploadFile.Length == 0)
+        if (this.UploadFile == null || this.UploadFile.Length == 0)
         {
             return (false, "Please select a file to upload", null);
         }
@@ -213,8 +252,8 @@ public class Index : PageModel
     private async Task SaveUploadedFile(string path)
     {
         await using var stream = System.IO.File.Create(path);
-        await this.UploadFile.CopyToAsync(stream);
+        await this.UploadFile!.CopyToAsync(stream);
 
-        this.filesNames.Add(Path.GetFileName(path));
+        this.FilesNames.Add(Path.GetFileName(path));
     }
 }

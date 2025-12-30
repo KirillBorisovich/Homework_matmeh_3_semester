@@ -1,10 +1,14 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿// <copyright file="20251229230534_InitialTestHistory.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 #nullable disable
 
 namespace MyNUnitWebSolution.Migrations
 {
+    using System;
+    using Microsoft.EntityFrameworkCore.Migrations;
+
     /// <inheritdoc />
     public partial class InitialTestHistory : Migration
     {
@@ -18,7 +22,7 @@ namespace MyNUnitWebSolution.Migrations
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     StartedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    FinishedAt = table.Column<DateTime>(type: "TEXT", nullable: false)
+                    FinishedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -32,7 +36,7 @@ namespace MyNUnitWebSolution.Migrations
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     TestRunId = table.Column<int>(type: "INTEGER", nullable: false),
-                    AssemblyName = table.Column<string>(type: "TEXT", nullable: false)
+                    AssemblyName = table.Column<string>(type: "TEXT", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -53,7 +57,7 @@ namespace MyNUnitWebSolution.Migrations
                         .Annotation("Sqlite:Autoincrement", true),
                     AssemblyRunId = table.Column<int>(type: "INTEGER", nullable: false),
                     Order = table.Column<int>(type: "INTEGER", nullable: false),
-                    Text = table.Column<string>(type: "TEXT", nullable: false)
+                    Text = table.Column<string>(type: "TEXT", nullable: false),
                 },
                 constraints: table =>
                 {
