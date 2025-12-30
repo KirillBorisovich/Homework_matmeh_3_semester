@@ -1,0 +1,8 @@
+#assemblyHistory, #table_table-sm_table-hover {
+    max-height: 85vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border: 1px solid #ccc;
+    padding: 5px;
+    border-radius: 5px;
+}

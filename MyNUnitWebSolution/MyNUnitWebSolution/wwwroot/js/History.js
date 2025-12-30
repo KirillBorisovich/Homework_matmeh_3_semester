@@ -28,7 +28,7 @@ function renderAssemblyHistory(runs, assemblyName) {
                         <div class="card-header">
                             Запуск: ${new Date(run.runStartedAt).toLocaleString()}
                         </div>
-                        <div class="card-body p-2">
+                        <div class="card-body p-0">
                             ${formatRunLines(run.lines)}
                         </div>
                      </div>`;
