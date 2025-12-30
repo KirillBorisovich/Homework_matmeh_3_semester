@@ -399,3 +399,7 @@ FodyWeavers.xsd
 *.sln.iml
 .DS_Store
 .idea/
+
+# SQLite database files
+*.db
+*.sqlite
