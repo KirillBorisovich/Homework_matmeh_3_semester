@@ -12,7 +12,7 @@ using System.Net.Sockets;
 /// A server that allows you to download files.
 /// </summary>
 /// <param name="port">The port on which the server will accept connections.</param>
-public class Server(int port)
+public class Server(int port) : IDisposable
 {
     private readonly CancellationTokenSource cts = new();
     private volatile bool isStop;
@@ -90,6 +90,11 @@ public class Server(int port)
     {
         this.isStop = true;
         this.cts.Cancel();
+    }
+
+    public void Dispose()
+    {
+        this.cts.Dispose();
     }
 
     private static async Task ProcessTheRequest(Stream stream, StreamReader reader, StreamWriter writer)

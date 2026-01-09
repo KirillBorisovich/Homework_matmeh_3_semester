@@ -137,9 +137,9 @@ public class Client : IDisposable
     /// </summary>
     public void Dispose()
     {
-        this.writer.Dispose();
-        this.reader.Dispose();
-        this.stream.Dispose();
+        this.writer?.Dispose();
+        this.reader?.Dispose();
+        this.stream?.Dispose();
         this.client.Dispose();
         this.disposed = true;
     }

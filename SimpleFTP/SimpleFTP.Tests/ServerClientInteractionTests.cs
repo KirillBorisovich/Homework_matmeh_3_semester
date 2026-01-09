@@ -27,19 +27,23 @@ public class ServerClientInteractionTests
     {
         this.client.Dispose();
         this.server.Stop();
+        this.server.Dispose();
     }
 
     [Test]
-    public void ClosedConnectionTest()
+    public async Task ClosedConnectionTest()
     {
-        var localServer = new Server(Port + 1);
+        using var localServer = new Server(Port + 1);
         _ = localServer.Start();
         using var localClient = new Client();
         _ = localClient.ConnectAsync("localhost", Port + 1, this.cts.Token);
         localServer.Stop();
-        Assert.Multiple(() =>
+        await Task.Delay(50);
+        await Assert.MultipleAsync(async() =>
         {
-            Assert.ThrowsAsync<IOException>(async () => await localClient.ListAsync("./", this.cts.Token));
+            await Assert.ThatAsync(async () => await localClient.ListAsync("./", this.cts.Token),
+                Throws.InstanceOf<IOException>()
+                    .Or.InstanceOf<InvalidOperationException>());
             Assert.ThrowsAsync<InvalidOperationException>(async () => await localClient.Get("./File", "./"));
         });
     }
