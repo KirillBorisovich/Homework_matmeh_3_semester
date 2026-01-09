@@ -2,23 +2,24 @@
 // Copyright (c) Bengya Kirill under MIT License.
 // </copyright>
 
-namespace TestProject1;
-
 using System.Security.Cryptography;
-using SimpleFTP;
+
+namespace SimpleFTP.Tests;
 
 public class ServerClientInteractionTests
 {
     private const int Port = 65000;
+    private readonly CancellationTokenSource cts = new();
     private Server server;
     private Client client;
 
     [OneTimeSetUp]
-    public void OneTimeSetup()
+    public async Task OneTimeSetup()
     {
         this.server = new Server(Port);
         _ = this.server.Start();
-        this.client = new Client("localhost", Port);
+        this.client = new Client();
+        await this.client.ConnectAsync("localhost", Port, this.cts.Token);
     }
 
     [OneTimeTearDown]
@@ -33,19 +34,20 @@ public class ServerClientInteractionTests
     {
         var localServer = new Server(Port + 1);
         _ = localServer.Start();
-        using var localClient = new Client("localhost", Port + 1);
+        using var localClient = new Client();
+        _ = localClient.ConnectAsync("localhost", Port + 1, this.cts.Token);
         localServer.Stop();
         Assert.Multiple(() =>
         {
-            Assert.ThrowsAsync<IOException>(async () => await localClient.List("./"));
-            Assert.ThrowsAsync<IOException>(async () => await localClient.Get("./File", "./"));
+            Assert.ThrowsAsync<IOException>(async () => await localClient.ListAsync("./", this.cts.Token));
+            Assert.ThrowsAsync<InvalidOperationException>(async () => await localClient.Get("./File", "./"));
         });
     }
 
     [Test]
     public async Task ListForAnExistingDirectoryTest()
     {
-        var data = await this.client.List("./");
+        var data = await this.client.ListAsync("./", this.cts.Token);
         Assert.That(data.Split(), Has.Length.GreaterThanOrEqualTo(3));
     }
 
@@ -55,7 +57,7 @@ public class ServerClientInteractionTests
         Assert.Multiple(() =>
         {
             Assert.ThrowsAsync<FileNotFoundException>(async () =>
-                await this.client.List("./weqrqwrwqer"));
+                await this.client.ListAsync("./weqrqwrwqer", this.cts.Token));
             Assert.ThrowsAsync<FileNotFoundException>(async () =>
                 await this.client.Get("./weqrqwrwqer", "./"));
         });
@@ -64,7 +66,7 @@ public class ServerClientInteractionTests
     [Test]
     public async Task ListForFile()
     {
-        var data1 = await this.client.List("./");
+        var data1 = await this.client.ListAsync("./",  this.cts.Token);
         var result = data1.Split();
         var indexForFile = 0;
         for (var i = 0; i < result.Length; i++)
@@ -77,13 +79,13 @@ public class ServerClientInteractionTests
         }
 
         Assert.ThrowsAsync<FileNotFoundException>(async () =>
-            await this.client.List(result[indexForFile]));
+            await this.client.ListAsync(result[indexForFile], this.cts.Token));
     }
 
     [Test]
     public async Task GetForFileTest()
     {
-        var array = (await this.client.List("./")).Split();
+        var array = (await this.client.ListAsync("./", this.cts.Token)).Split();
         var pathForServer = array[Array.IndexOf(array, "false") - 1];
         Directory.CreateDirectory("TestDirectory");
         await this.client.Get(pathForServer, Directory.GetCurrentDirectory() + "/TestDirectory/");

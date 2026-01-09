@@ -4,6 +4,7 @@
 
 namespace SimpleFTP;
 
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 
@@ -13,7 +14,7 @@ using System.Net.Sockets;
 /// <param name="port">The port on which the server will accept connections.</param>
 public class Server(int port)
 {
-    private readonly int port = port;
+    private readonly CancellationTokenSource cts = new();
     private volatile bool isStop;
 
     /// <summary>
@@ -22,41 +23,63 @@ public class Server(int port)
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     public async Task Start()
     {
-        using var listener = new TcpListener(IPAddress.Any, this.port);
+        using var listener = new TcpListener(IPAddress.Any, port);
         listener.Start();
-        while (!this.isStop)
+        var clientTasks = new ConcurrentDictionary<Task, byte>();
+        try
         {
-            var socket = await listener.AcceptSocketAsync();
-            _ = Task.Run(async () =>
+            while (!this.isStop)
             {
-                using (socket)
+                var socket = await listener.AcceptSocketAsync(this.cts.Token);
+                var newTask = Task.Run(
+                    async () =>
                 {
-                    await using var stream = new NetworkStream(socket);
-                    using var reader = new StreamReader(stream);
-                    await using var writer = new StreamWriter(stream);
-                    writer.AutoFlush = true;
-                    while (!this.isStop)
+                    using (socket)
                     {
-                        try
+                        await using var stream = new NetworkStream(socket);
+                        using var reader = new StreamReader(stream);
+                        await using var writer = new StreamWriter(stream);
+                        writer.AutoFlush = true;
+                        while (!this.isStop)
                         {
-                            await ProcessTheRequest(stream, reader, writer);
-                        }
-                        catch (OperationCanceledException)
-                        {
-                            break;
-                        }
-                        catch (IOException)
-                        {
-                            break;
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine(ex);
-                            await writer.WriteAsync("-4 Server error\n");
+                            try
+                            {
+                                await ProcessTheRequest(stream, reader, writer);
+                            }
+                            catch (OperationCanceledException)
+                            {
+                                break;
+                            }
+                            catch (IOException)
+                            {
+                                break;
+                            }
                         }
                     }
-                }
-            });
+                },
+                    this.cts.Token);
+
+                clientTasks.TryAdd(newTask, 0);
+                _ = newTask.ContinueWith(t =>
+                {
+                    clientTasks.TryRemove(t, out _);
+                });
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Accept error: {ex.Message}");
+        }
+        finally
+        {
+            listener.Stop();
+            if (!clientTasks.IsEmpty)
+            {
+                await Task.WhenAll(clientTasks.Keys);
+            }
         }
     }
 
@@ -66,6 +89,7 @@ public class Server(int port)
     public void Stop()
     {
         this.isStop = true;
+        this.cts.Cancel();
     }
 
     private static async Task ProcessTheRequest(Stream stream, StreamReader reader, StreamWriter writer)

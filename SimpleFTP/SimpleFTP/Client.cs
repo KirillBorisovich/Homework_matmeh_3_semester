@@ -11,20 +11,30 @@ using System.Net.Sockets;
 /// </summary>
 public class Client : IDisposable
 {
-    private readonly TcpClient client;
-    private readonly Stream stream;
-    private readonly StreamWriter writer;
-    private readonly StreamReader reader;
+    private readonly TcpClient client = new();
+    private Stream? stream;
+    private StreamWriter? writer;
+    private StreamReader? reader;
     private bool disposed;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Client"/> class.
+    /// Connects to the server asynchronously.
     /// </summary>
     /// <param name="ip">The IP for the connection.</param>
     /// <param name="port">Connection port.</param>
-    public Client(string ip, int port)
+    /// <param name="cts">Cancellation token.</param>
+    public async Task ConnectAsync(string ip, int port, CancellationToken cts = default)
     {
-        this.client = new TcpClient(ip, port);
+        ObjectDisposedException.ThrowIf(this.disposed, this);
+
+        try
+        {
+            await this.client.ConnectAsync(ip, port, cts);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+
         this.stream = this.client.GetStream();
         this.writer = new StreamWriter(this.stream) { AutoFlush = true };
         this.reader = new StreamReader(this.stream);
@@ -34,11 +44,14 @@ public class Client : IDisposable
     /// Request a list of files and folders.
     /// </summary>
     /// <param name="path">The path to the folder on the server.</param>
+    /// <param name="cts">A token for completing an asynchronous operation.</param>
     /// <returns>Response to the request: the number, names, and flags that
     /// take the value "true" for directories and "false" for files.</returns>
-    public async Task<string> List(string path)
+    public async Task<string> ListAsync(string path, CancellationToken cts)
     {
         ObjectDisposedException.ThrowIf(this.disposed, this);
+
+        this.EnsureConnected();
 
         if (path.Contains('\\'))
         {
@@ -46,10 +59,9 @@ public class Client : IDisposable
         }
 
         await this.writer.WriteLineAsync($"1 {path}\n");
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
-        var data = await this.reader.ReadLineAsync(cts.Token);
-        ServerExceptionHandler(data);
-        return data!;
+        var data = await this.reader.ReadLineAsync(cts);
+        HandleServerException(data);
+        return data ?? throw new IOException("Server closed connection");
     }
 
     /// <summary>
@@ -63,6 +75,8 @@ public class Client : IDisposable
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     public async Task Get(string pathForServer, string downloadPath)
     {
+        this.EnsureConnected();
+
         if (pathForServer.Contains('\\'))
         {
             pathForServer = pathForServer.Replace('\\', '/');
@@ -86,7 +100,7 @@ public class Client : IDisposable
         using var cts0 = new CancellationTokenSource(TimeSpan.FromSeconds(60));
         var length = await this.reader.ReadLineAsync(cts0.Token);
 
-        ServerExceptionHandler(length);
+        HandleServerException(length);
 
         if (!long.TryParse(length, out var fileSize))
         {
@@ -94,15 +108,7 @@ public class Client : IDisposable
         }
 
         downloadPath += downloadPath[^1] == '/' ? fileName : '/' + fileName;
-        FileStream fileStream;
-        try
-        {
-            fileStream = File.Create(downloadPath);
-        }
-        catch (Exception)
-        {
-            throw new PathFormatException("Something is wrong in the path for the download file.");
-        }
+        var fileStream = File.Create(downloadPath);
 
         const int sizeBuffer = 8192;
         var buffer = new byte[sizeBuffer];
@@ -138,7 +144,7 @@ public class Client : IDisposable
         this.disposed = true;
     }
 
-    private static void ServerExceptionHandler(string? data)
+    private static void HandleServerException(string? data)
     {
         if (string.IsNullOrEmpty(data))
         {
@@ -158,6 +164,15 @@ public class Client : IDisposable
                 throw new PathFormatException($"{data[3..]}");
             case "-3":
                 throw new InvalidOperationException($"{data[3..]}");
+        }
+    }
+
+    private void EnsureConnected()
+    {
+        ObjectDisposedException.ThrowIf(this.disposed, this);
+        if (this.stream == null || !this.client.Connected)
+        {
+            throw new InvalidOperationException("Client is not connected. Call ConnectAsync first.");
         }
     }
 }
